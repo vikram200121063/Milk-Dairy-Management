@@ -1,0 +1,233 @@
+{% extends "base.html" %}
+{% block title %}{{ 'Edit' if mode == 'edit' else 'Add' }} Milk Entry - Milk Dairy Management{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card shadow-sm">
+            <div class="card-body p-4">
+                <h3 class="mb-4">{{ 'Edit Milk Entry' if mode == 'edit' else 'Add Milk Entry' }}</h3>
+
+                <form method="POST">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Customer</label>
+                            <select name="customer_id" class="form-select" required>
+                                <option value="">Select customer...</option>
+                                {% for c in customers %}
+                                <option
+                                    value="{{ c.customer_id }}"
+                                    {% if entry.customer_id == c.customer_id %}selected{% endif %}
+                                >
+                                    {{ c.name }} ({{ c.customer_id }})
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label">Date</label>
+                            <input
+                                type="date"
+                                name="date"
+                                class="form-control"
+                                value="{{ entry.date or '' }}"
+                                max="{{ today }}"
+                                required
+                            >
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label">Shift</label>
+                            <select name="shift" class="form-select" required>
+                                <option value="">Select shift...</option>
+                                <option value="Morning" {% if entry.shift == 'Morning' %}selected{% endif %}>Morning</option>
+                                <option value="Evening" {% if entry.shift == 'Evening' %}selected{% endif %}>Evening</option>
+                            </select>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label">Milk Type</label>
+                            <select name="milk_type" id="milk_type" class="form-select" required>
+                                <option value="">Select type...</option>
+                                <option value="Cow" {% if entry.milk_type == 'Cow' %}selected{% endif %}>Cow</option>
+                                <option value="Buffalo" {% if entry.milk_type == 'Buffalo' %}selected{% endif %}>Buffalo</option>
+                            </select>
+                        </div>
+
+                        <div class="col-md-4">
+                            <label class="form-label">Quantity (Litres)</label>
+                            <input
+                                type="number" step="0.01" min="0.01" name="quantity" id="quantity"
+                                class="form-control" value="{{ entry.quantity or '' }}" required
+                            >
+                        </div>
+
+                        <div class="col-md-4">
+                            <label class="form-label">Fat %</label>
+                            <input
+                                type="number" step="0.1" min="0" max="100" name="fat_percentage" id="fat"
+                                class="form-control" value="{{ entry.fat_percentage or '' }}" required
+                            >
+                        </div>
+
+                        <div class="col-md-3">
+                            <label class="form-label">SNF %</label>
+                            <input
+                                type="number" step="0.1" min="0" max="100" name="snf_percentage" id="snf"
+                                class="form-control" value="{{ entry.snf_percentage or '' }}" required
+                            >
+                        </div>
+
+                        <div class="col-12">
+                            <label class="form-label d-block">Rate Mode</label>
+                            <div class="btn-group" role="group">
+                                <input
+                                    type="radio" class="btn-check" name="rate_mode" id="mode-manual"
+                                    value="Manual" {% if entry.rate_mode != 'Automatic' %}checked{% endif %}
+                                >
+                                <label class="btn btn-outline-primary" for="mode-manual">Manual</label>
+
+                                <input
+                                    type="radio" class="btn-check" name="rate_mode" id="mode-auto"
+                                    value="Automatic" {% if entry.rate_mode == 'Automatic' %}checked{% endif %}
+                                >
+                                <label class="btn btn-outline-primary" for="mode-auto">Automatic (Fat/SNF based)</label>
+                            </div>
+                        </div>
+
+                        <div class="col-md-4" id="manual-rate-wrapper">
+                            <label class="form-label">Rate per Litre (₹)</label>
+                            <input
+                                type="number" step="0.01" min="0" name="rate_per_litre" id="rate"
+                                class="form-control" value="{{ entry.rate_per_litre or '' }}"
+                            >
+                        </div>
+
+                        <div class="col-md-4 d-none" id="auto-rate-wrapper">
+                            <label class="form-label">Calculated Rate (₹)</label>
+                            <input type="text" id="auto-rate-display" class="form-control" readonly value="—">
+                            <small class="text-muted" id="auto-rate-note"></small>
+                        </div>
+
+                        <div class="col-12">
+                            <label class="form-label">Notes (optional)</label>
+                            <input type="text" name="notes" class="form-control" value="{{ entry.notes or '' }}">
+                        </div>
+
+                        <div class="col-12">
+                            <div class="alert alert-secondary d-flex justify-content-between align-items-center mb-0">
+                                <span>Estimated Total Amount</span>
+                                <strong id="total-preview">₹0.00</strong>
+                            </div>
+                            <small class="text-muted">
+                                This preview updates as you type. The final amount is calculated by the server when you save.
+                            </small>
+                        </div>
+                    </div>
+
+                    <div class="d-flex gap-2 mt-4">
+                        <button type="submit" class="btn btn-primary">
+                            {{ 'Save Changes' if mode == 'edit' else 'Add Entry' }}
+                        </button>
+                        <a href="{{ url_for('milk_entries.list_entries') }}" class="btn btn-outline-secondary">Cancel</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Client-side preview only, for staff convenience - the real total and
+    // (for Automatic mode) the real rate are always calculated server-side.
+    const qtyInput = document.getElementById('quantity');
+    const rateInput = document.getElementById('rate');
+    const fatInput = document.getElementById('fat');
+    const snfInput = document.getElementById('snf');
+    const milkTypeSelect = document.getElementById('milk_type');
+    const preview = document.getElementById('total-preview');
+    const manualWrapper = document.getElementById('manual-rate-wrapper');
+    const autoWrapper = document.getElementById('auto-rate-wrapper');
+    const autoDisplay = document.getElementById('auto-rate-display');
+    const autoNote = document.getElementById('auto-rate-note');
+    const modeRadios = document.querySelectorAll('input[name="rate_mode"]');
+
+    let currentAutoRate = null;
+    let fetchTimer = null;
+
+    function isAutomatic() {
+        return document.getElementById('mode-auto').checked;
+    }
+
+    function updateTotalPreview() {
+        const qty = parseFloat(qtyInput.value) || 0;
+        const rate = isAutomatic() ? (currentAutoRate || 0) : (parseFloat(rateInput.value) || 0);
+        preview.textContent = '\u20b9' + (qty * rate).toFixed(2);
+    }
+
+    function fetchAutoRate() {
+        const milkType = milkTypeSelect.value;
+        const fat = fatInput.value;
+        const snf = snfInput.value;
+
+        if (!milkType || fat === '' || snf === '') {
+            autoDisplay.value = '—';
+            autoNote.textContent = 'Fill in milk type, Fat %, and SNF % to see the calculated rate.';
+            currentAutoRate = null;
+            updateTotalPreview();
+            return;
+        }
+
+        const url = `{{ url_for('rate_config.calculate_preview') }}?milk_type=${encodeURIComponent(milkType)}&fat=${encodeURIComponent(fat)}&snf=${encodeURIComponent(snf)}`;
+        fetch(url)
+            .then((res) => res.json())
+            .then((data) => {
+                if (data.error) {
+                    autoDisplay.value = '—';
+                    autoNote.textContent = data.error;
+                    currentAutoRate = null;
+                } else {
+                    autoDisplay.value = '\u20b9' + data.rate.toFixed(2);
+                    autoNote.textContent = '';
+                    currentAutoRate = data.rate;
+                }
+                updateTotalPreview();
+            })
+            .catch(() => {
+                autoDisplay.value = '—';
+                autoNote.textContent = 'Could not reach the server to calculate the rate.';
+                currentAutoRate = null;
+                updateTotalPreview();
+            });
+    }
+
+    function debouncedFetchAutoRate() {
+        clearTimeout(fetchTimer);
+        fetchTimer = setTimeout(fetchAutoRate, 300);
+    }
+
+    function applyMode() {
+        if (isAutomatic()) {
+            manualWrapper.classList.add('d-none');
+            autoWrapper.classList.remove('d-none');
+            rateInput.disabled = true;  // disabled inputs are not submitted with the form
+            fetchAutoRate();
+        } else {
+            manualWrapper.classList.remove('d-none');
+            autoWrapper.classList.add('d-none');
+            rateInput.disabled = false;
+            updateTotalPreview();
+        }
+    }
+
+    modeRadios.forEach((radio) => radio.addEventListener('change', applyMode));
+    qtyInput.addEventListener('input', updateTotalPreview);
+    rateInput.addEventListener('input', updateTotalPreview);
+    fatInput.addEventListener('input', debouncedFetchAutoRate);
+    snfInput.addEventListener('input', debouncedFetchAutoRate);
+    milkTypeSelect.addEventListener('change', debouncedFetchAutoRate);
+
+    applyMode();
+</script>
+{% endblock %}

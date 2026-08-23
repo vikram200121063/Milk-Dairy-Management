@@ -1,0 +1,24 @@
+# Environment variables (NEVER commit this - contains secrets)
+.env
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+venv/
+env/
+.venv/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Generated invoice PDFs (optional - remove if you want to track them)
+app/static/invoices/*.pdf

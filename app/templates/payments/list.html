@@ -1,0 +1,139 @@
+{% extends "base.html" %}
+{% block title %}Payments - Milk Dairy Management{% endblock %}
+
+{% block content %}
+<h2 class="mb-3">10-Day Payments</h2>
+
+<div class="card shadow-sm mb-3">
+    <div class="card-body">
+        <form method="GET" class="row g-2 align-items-end">
+            <div class="col-sm-3">
+                <label class="form-label small mb-1">Year</label>
+                <select name="year" class="form-select">
+                    {% for y in range(2024, 2028) %}
+                    <option value="{{ y }}" {% if y == year %}selected{% endif %}>{{ y }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-sm-4">
+                <label class="form-label small mb-1">Month</label>
+                <select name="month" class="form-select">
+                    {% for m in range(1, 13) %}
+                    <option value="{{ m }}" {% if m == month %}selected{% endif %}>
+                        {{ ["", "January","February","March","April","May","June","July","August","September","October","November","December"][m] }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-sm-3">
+                <label class="form-label small mb-1">Cycle</label>
+                <select name="cycle" class="form-select">
+                    <option value="1" {% if cycle == 1 %}selected{% endif %}>Cycle 1 (Day 1-10)</option>
+                    <option value="2" {% if cycle == 2 %}selected{% endif %}>Cycle 2 (Day 11-20)</option>
+                    <option value="3" {% if cycle == 3 %}selected{% endif %}>Cycle 3 (Day 21-End)</option>
+                </select>
+            </div>
+            <div class="col-sm-2">
+                <button type="submit" class="btn btn-outline-secondary w-100">View</button>
+            </div>
+        </form>
+
+        <form method="POST" action="{{ url_for('payments.generate') }}" class="mt-3">
+            <input type="hidden" name="year" value="{{ year }}">
+            <input type="hidden" name="month" value="{{ month }}">
+            <input type="hidden" name="cycle" value="{{ cycle }}">
+            <button type="submit" class="btn btn-primary">
+                Generate / Refresh Payments for {{ period }}
+            </button>
+            <small class="text-muted d-block mt-1">
+                Safe to click again anytime - this recalculates totals but never erases a payment already recorded.
+            </small>
+        </form>
+    </div>
+</div>
+
+<div class="row mb-3">
+    <div class="col-md-3">
+        <div class="card shadow-sm text-center p-2">
+            <div class="text-muted small">Gross Amount</div>
+            <div class="fs-5 fw-bold">₹{{ "%.2f"|format(totals.gross) }}</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card shadow-sm text-center p-2">
+            <div class="text-muted small">Final Payable</div>
+            <div class="fs-5 fw-bold">₹{{ "%.2f"|format(totals.final) }}</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card shadow-sm text-center p-2">
+            <div class="text-muted small">Amount Paid</div>
+            <div class="fs-5 fw-bold text-success">₹{{ "%.2f"|format(totals.paid) }}</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card shadow-sm text-center p-2">
+            <div class="text-muted small">Remaining</div>
+            <div class="fs-5 fw-bold text-danger">₹{{ "%.2f"|format(totals.remaining) }}</div>
+        </div>
+    </div>
+</div>
+
+<div class="card shadow-sm">
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>Customer</th>
+                    <th>Qty (L)</th>
+                    <th>Gross</th>
+                    <th>Deductions</th>
+                    <th>Prev. Pending</th>
+                    <th>Final Payable</th>
+                    <th>Paid</th>
+                    <th>Remaining</th>
+                    <th>Status</th>
+                    <th class="text-end">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for p in payments %}
+                <tr>
+                    <td>{{ p.customer_name }}</td>
+                    <td>{{ "%.2f"|format(p.total_quantity) }}</td>
+                    <td>₹{{ "%.2f"|format(p.gross_amount) }}</td>
+                    <td>₹{{ "%.2f"|format(p.deductions) }}</td>
+                    <td>₹{{ "%.2f"|format(p.previous_pending_amount) }}</td>
+                    <td><strong>₹{{ "%.2f"|format(p.final_payable_amount) }}</strong></td>
+                    <td>₹{{ "%.2f"|format(p.amount_paid) }}</td>
+                    <td>₹{{ "%.2f"|format(p.remaining_amount) }}</td>
+                    <td>
+                        {% if p.payment_status == 'Paid' %}
+                            <span class="badge bg-success">Paid</span>
+                        {% elif p.payment_status == 'Partially Paid' %}
+                            <span class="badge bg-warning text-dark">Partially Paid</span>
+                        {% else %}
+                            <span class="badge bg-secondary">Pending</span>
+                        {% endif %}
+                    </td>
+                    <td class="text-end">
+                        <a href="{{ url_for('payments.detail', payment_id=p.payment_id) }}" class="btn btn-sm btn-outline-primary">
+                            View / Pay
+                        </a>
+                        <a href="{{ url_for('payments.invoice', payment_id=p.payment_id) }}" class="btn btn-sm btn-outline-secondary">
+                            Invoice
+                        </a>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="10" class="text-center text-muted py-4">
+                        No payment records for this cycle yet. Click "Generate Payments" above.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

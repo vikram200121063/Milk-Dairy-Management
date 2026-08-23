@@ -1,0 +1,140 @@
+{% extends "base.html" %}
+{% block title %}{{ payment.customer_name }} - {{ payment.payment_period }}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-start mb-3">
+    <div>
+        <h2 class="mb-0">{{ payment.customer_name }}</h2>
+        <span class="text-muted">
+            <code>{{ payment.payment_id }}</code> &middot; Period: {{ payment.payment_period }}
+            &middot; {{ payment.cycle_start.strftime('%d %b') }} - {{ payment.cycle_end.strftime('%d %b %Y') }}
+        </span>
+    </div>
+    {% if payment.payment_status == 'Paid' %}
+        <span class="badge bg-success fs-6 me-2">Paid</span>
+    {% elif payment.payment_status == 'Partially Paid' %}
+        <span class="badge bg-warning text-dark fs-6 me-2">Partially Paid</span>
+    {% else %}
+        <span class="badge bg-secondary fs-6 me-2">Pending</span>
+    {% endif %}
+    <a href="{{ url_for('payments.invoice', payment_id=payment.payment_id) }}" class="btn btn-outline-primary">
+        View Invoice
+    </a>
+</div>
+
+<div class="row">
+    <div class="col-md-7">
+        <div class="card shadow-sm mb-4">
+            <div class="card-header">Payment Breakdown</div>
+            <table class="table mb-0">
+                <tr><td>Total Quantity</td><td class="text-end">{{ "%.2f"|format(payment.total_quantity) }} L</td></tr>
+                <tr><td>Total Entries</td><td class="text-end">{{ payment.total_entries }}</td></tr>
+                <tr><td>Gross Amount</td><td class="text-end">₹{{ "%.2f"|format(payment.gross_amount) }}</td></tr>
+                <tr><td>Deductions</td><td class="text-end">- ₹{{ "%.2f"|format(payment.deductions) }}</td></tr>
+                <tr><td>Previous Pending Balance</td><td class="text-end">+ ₹{{ "%.2f"|format(payment.previous_pending_amount) }}</td></tr>
+                <tr class="table-light"><td><strong>Final Payable Amount</strong></td><td class="text-end"><strong>₹{{ "%.2f"|format(payment.final_payable_amount) }}</strong></td></tr>
+                <tr><td>Amount Paid</td><td class="text-end text-success">₹{{ "%.2f"|format(payment.amount_paid) }}</td></tr>
+                <tr><td><strong>Remaining Balance</strong></td><td class="text-end text-danger"><strong>₹{{ "%.2f"|format(payment.remaining_amount) }}</strong></td></tr>
+                {% if payment.payment_method %}
+                <tr><td colspan="2" class="text-muted small pt-3">
+                    Last transaction: {{ payment.payment_method }}
+                    {% if payment.transaction_reference %}(Ref: {{ payment.transaction_reference }}){% endif %}
+                    on {{ payment.payment_date.strftime('%d %b %Y') }}
+                </td></tr>
+                {% endif %}
+            </table>
+        </div>
+
+        <div class="card shadow-sm mb-4">
+            <div class="card-header">Update Deductions</div>
+            <div class="card-body">
+                <form method="POST" action="{{ url_for('payments.set_deductions', payment_id=payment.payment_id) }}" class="row g-2">
+                    <div class="col-8">
+                        <input
+                            type="number" step="0.01" min="0" name="deductions"
+                            class="form-control" value="{{ payment.deductions }}"
+                        >
+                    </div>
+                    <div class="col-4">
+                        <button type="submit" class="btn btn-outline-secondary w-100">Save</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-5">
+        <div class="card shadow-sm mb-4">
+            <div class="card-header">Record a Payment</div>
+            <div class="card-body">
+                {% if payment.remaining_amount <= 0 %}
+                    <p class="text-success mb-0">This payment is fully settled. ✅</p>
+                {% else %}
+                <form method="POST" action="{{ url_for('payments.pay', payment_id=payment.payment_id) }}">
+                    <div class="mb-3">
+                        <label class="form-label">Amount (₹)</label>
+                        <input
+                            type="number" step="0.01" min="0.01" name="amount" class="form-control"
+                            max="{{ payment.remaining_amount }}" value="{{ payment.remaining_amount }}" required
+                        >
+                        <small class="text-muted">Remaining balance: ₹{{ "%.2f"|format(payment.remaining_amount) }}</small>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Payment Method</label>
+                        <select name="payment_method" class="form-select" required>
+                            <option value="">Select...</option>
+                            {% for m in payment_methods %}
+                            <option value="{{ m }}">{{ m }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Transaction Reference (optional)</label>
+                        <input type="text" name="transaction_reference" class="form-control">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Payment Date</label>
+                        <input type="date" name="payment_date" class="form-control" value="{{ today }}" max="{{ today }}">
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100">Record Payment</button>
+                </form>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card shadow-sm mb-4">
+    <div class="card-header">Milk Entries in this Cycle</div>
+    <div class="table-responsive">
+        <table class="table mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>Date</th><th>Shift</th><th>Type</th><th>Qty (L)</th>
+                    <th>Fat %</th><th>SNF %</th><th>Rate</th><th>Amount</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for e in entries %}
+                <tr>
+                    <td>{{ e.date.strftime('%d %b') }}</td>
+                    <td>{{ e.shift }}</td>
+                    <td>{{ e.milk_type }}</td>
+                    <td>{{ "%.2f"|format(e.quantity) }}</td>
+                    <td>{{ e.fat_percentage }}</td>
+                    <td>{{ e.snf_percentage }}</td>
+                    <td>₹{{ "%.2f"|format(e.rate_per_litre) }}</td>
+                    <td>₹{{ "%.2f"|format(e.total_amount) }}</td>
+                </tr>
+                {% else %}
+                <tr><td colspan="8" class="text-center text-muted py-3">No milk entries in this cycle.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<a href="{{ url_for('payments.list_payments', year=payment.cycle_start.year, month=payment.cycle_start.month, cycle=payment.payment_period.split('-C')[1]) }}" class="btn btn-outline-secondary">
+    ← Back to Payments
+</a>
+{% endblock %}

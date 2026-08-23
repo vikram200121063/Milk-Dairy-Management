@@ -1,0 +1,126 @@
+{% extends "base.html" %}
+{% block title %}Dashboard - Milk Dairy Management{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2 class="mb-0">Welcome, {{ username }} 👋</h2>
+    <div>
+        <a href="{{ url_for('milk_entries.add_entry') }}" class="btn btn-primary btn-sm">+ Add Milk Entry</a>
+        <a href="{{ url_for('customers.add_customer') }}" class="btn btn-outline-primary btn-sm">+ Add Customer</a>
+    </div>
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-6 col-md-3">
+        <div class="card shadow-sm text-center p-3 h-100">
+            <div class="text-muted small">Total Customers</div>
+            <div class="fs-3 fw-bold">{{ total_customers }}</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card shadow-sm text-center p-3 h-100">
+            <div class="text-muted small">Active Customers</div>
+            <div class="fs-3 fw-bold text-success">{{ active_customers }}</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card shadow-sm text-center p-3 h-100">
+            <div class="text-muted small">Today's Collections</div>
+            <div class="fs-3 fw-bold">{{ today_stats.count }}</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card shadow-sm text-center p-3 h-100">
+            <div class="text-muted small">Today's Quantity</div>
+            <div class="fs-3 fw-bold">{{ "%.1f"|format(today_stats.quantity) }} L</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-4">
+        <div class="card shadow-sm text-center p-3 h-100">
+            <div class="text-muted small">Today's Estimated Amount</div>
+            <div class="fs-3 fw-bold">₹{{ "%.2f"|format(today_stats.amount) }}</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-4">
+        <div class="card shadow-sm text-center p-3 h-100">
+            <div class="text-muted small">Pending Payment Records</div>
+            <div class="fs-3 fw-bold text-warning">{{ pending_stats.count }}</div>
+        </div>
+    </div>
+    <div class="col-12 col-md-4">
+        <div class="card shadow-sm text-center p-3 h-100">
+            <div class="text-muted small">Total Pending Amount</div>
+            <div class="fs-3 fw-bold text-danger">₹{{ "%.2f"|format(pending_stats.amount) }}</div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-3">
+    <div class="col-md-6">
+        <div class="card shadow-sm h-100">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                Recent Milk Entries
+                <a href="{{ url_for('milk_entries.list_entries') }}" class="small">View all →</a>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-sm mb-0">
+                    <thead class="table-light">
+                        <tr><th>Date</th><th>Customer</th><th>Shift</th><th>Qty</th><th>Amount</th></tr>
+                    </thead>
+                    <tbody>
+                        {% for e in recent_entries %}
+                        <tr>
+                            <td>{{ e.date.strftime('%d %b') }}</td>
+                            <td>{{ e.customer_name }}</td>
+                            <td>{{ e.shift }}</td>
+                            <td>{{ "%.2f"|format(e.quantity) }} L</td>
+                            <td>₹{{ "%.2f"|format(e.total_amount) }}</td>
+                        </tr>
+                        {% else %}
+                        <tr><td colspan="5" class="text-center text-muted py-3">No milk entries yet.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-6">
+        <div class="card shadow-sm h-100">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                Recent Payments
+                <a href="{{ url_for('payments.list_payments') }}" class="small">View all →</a>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-sm mb-0">
+                    <thead class="table-light">
+                        <tr><th>Customer</th><th>Period</th><th>Final Payable</th><th>Status</th></tr>
+                    </thead>
+                    <tbody>
+                        {% for p in recent_payments %}
+                        <tr>
+                            <td>
+                                <a href="{{ url_for('payments.detail', payment_id=p.payment_id) }}">{{ p.customer_name }}</a>
+                            </td>
+                            <td>{{ p.payment_period }}</td>
+                            <td>₹{{ "%.2f"|format(p.final_payable_amount) }}</td>
+                            <td>
+                                {% if p.payment_status == 'Paid' %}
+                                    <span class="badge bg-success">Paid</span>
+                                {% elif p.payment_status == 'Partially Paid' %}
+                                    <span class="badge bg-warning text-dark">Partial</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">Pending</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr><td colspan="4" class="text-center text-muted py-3">No payments generated yet.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

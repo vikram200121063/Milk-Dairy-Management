@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% block title %}{{ 'Edit' if mode == 'edit' else 'Add' }} Customer - Milk Dairy Management{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-7">
+        <div class="card shadow-sm">
+            <div class="card-body p-4">
+                <h3 class="mb-4">{{ 'Edit Customer' if mode == 'edit' else 'Add New Customer' }}</h3>
+
+                <form method="POST">
+                    <div class="mb-3">
+                        <label class="form-label">Full Name</label>
+                        <input
+                            type="text"
+                            name="name"
+                            class="form-control"
+                            value="{{ customer.name or '' }}"
+                            required
+                        >
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Mobile Number</label>
+                        <input
+                            type="tel"
+                            name="mobile_number"
+                            class="form-control"
+                            value="{{ customer.mobile_number or '' }}"
+                            pattern="[6-9][0-9]{9}"
+                            title="Enter a valid 10-digit mobile number"
+                            required
+                        >
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Village / Location</label>
+                        <input
+                            type="text"
+                            name="village"
+                            class="form-control"
+                            value="{{ customer.village or '' }}"
+                            required
+                        >
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Address</label>
+                        <textarea name="address" class="form-control" rows="2">{{ customer.address or '' }}</textarea>
+                    </div>
+
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary">
+                            {{ 'Save Changes' if mode == 'edit' else 'Add Customer' }}
+                        </button>
+                        <a href="{{ url_for('customers.list_customers') }}" class="btn btn-outline-secondary">
+                            Cancel
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

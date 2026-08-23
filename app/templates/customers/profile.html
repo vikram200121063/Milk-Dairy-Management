@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block title %}{{ customer.name }} - Milk Dairy Management{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-start mb-3">
+    <div>
+        <h2 class="mb-0">{{ customer.name }}</h2>
+        <span class="text-muted"><code>{{ customer.customer_id }}</code></span>
+        {% if customer.status == 'Active' %}
+            <span class="badge bg-success ms-2">Active</span>
+        {% else %}
+            <span class="badge bg-secondary ms-2">Inactive</span>
+        {% endif %}
+    </div>
+    <a href="{{ url_for('customers.edit_customer', customer_id=customer.customer_id) }}" class="btn btn-outline-primary">
+        Edit Details
+    </a>
+</div>
+
+<div class="card shadow-sm mb-4">
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-6 mb-2">
+                <strong>Mobile Number:</strong> {{ customer.mobile_number }}
+            </div>
+            <div class="col-md-6 mb-2">
+                <strong>Village / Location:</strong> {{ customer.village }}
+            </div>
+            <div class="col-md-6 mb-2">
+                <strong>Registered On:</strong> {{ customer.registration_date.strftime('%d %b %Y') }}
+            </div>
+            <div class="col-12 mb-2">
+                <strong>Address:</strong> {{ customer.address or '—' }}
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="alert alert-light border">
+    Milk collection history, totals, and pending payment info will appear here starting in Phase 4.
+</div>
+
+<a href="{{ url_for('customers.list_customers') }}" class="btn btn-outline-secondary">← Back to Customers</a>
+{% endblock %}

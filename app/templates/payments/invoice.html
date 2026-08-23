@@ -1,0 +1,105 @@
+{% extends "base.html" %}
+{% block title %}Invoice {{ payment.invoice_number }} - {{ payment.customer_name }}{% endblock %}
+
+{% block content %}
+<style>
+    @media print {
+        .no-print { display: none !important; }
+        body { background: white; }
+        .card { border: none !important; box-shadow: none !important; }
+    }
+</style>
+
+<div class="no-print d-flex justify-content-between align-items-center mb-3">
+    <a href="{{ url_for('payments.detail', payment_id=payment.payment_id) }}" class="btn btn-outline-secondary">
+        ← Back to Payment
+    </a>
+    <div>
+        <button onclick="window.print()" class="btn btn-outline-primary">🖨️ Print</button>
+        <a href="{{ url_for('payments.invoice_pdf', payment_id=payment.payment_id) }}" class="btn btn-primary">
+            ⬇️ Download PDF
+        </a>
+    </div>
+</div>
+
+<div class="card shadow-sm p-4">
+    <div class="mb-4">
+        <h2 class="mb-0">{{ dairy.name }}</h2>
+        <div class="text-muted">{{ dairy.address }}</div>
+        <div class="text-muted">Contact: {{ dairy.contact }}</div>
+    </div>
+
+    <hr>
+
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <table class="table table-borderless table-sm mb-0">
+                <tr><td class="text-muted" style="width: 45%">Invoice Number</td><td><strong>{{ payment.invoice_number }}</strong></td></tr>
+                <tr><td class="text-muted">Invoice Date</td><td>{{ payment.invoice_date.strftime('%d %b %Y') }}</td></tr>
+                <tr><td class="text-muted">Payment Period</td><td>{{ payment.payment_period }} ({{ payment.cycle_start.strftime('%d %b') }} - {{ payment.cycle_end.strftime('%d %b %Y') }})</td></tr>
+            </table>
+        </div>
+        <div class="col-md-6">
+            <table class="table table-borderless table-sm mb-0">
+                <tr><td class="text-muted" style="width: 45%">Customer ID</td><td><strong>{{ payment.customer_id }}</strong></td></tr>
+                <tr><td class="text-muted">Customer Name</td><td>{{ payment.customer_name }}</td></tr>
+                <tr><td class="text-muted">Mobile Number</td><td>{{ payment.customer_mobile }}</td></tr>
+            </table>
+        </div>
+    </div>
+
+    <h5>Milk Collection Details</h5>
+    <table class="table table-bordered table-sm">
+        <thead class="table-light">
+            <tr>
+                <th>Date</th><th>Shift</th><th>Milk Type</th><th>Qty (L)</th>
+                <th>Fat %</th><th>SNF %</th><th>Rate (₹)</th><th>Amount (₹)</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for e in entries %}
+            <tr>
+                <td>{{ e.date.strftime('%d %b %Y') }}</td>
+                <td>{{ e.shift }}</td>
+                <td>{{ e.milk_type }}</td>
+                <td>{{ "%.2f"|format(e.quantity) }}</td>
+                <td>{{ e.fat_percentage }}</td>
+                <td>{{ e.snf_percentage }}</td>
+                <td>{{ "%.2f"|format(e.rate_per_litre) }}</td>
+                <td>{{ "%.2f"|format(e.total_amount) }}</td>
+            </tr>
+            {% else %}
+            <tr><td colspan="8" class="text-center text-muted">No milk entries in this cycle.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <div class="row justify-content-end mt-4">
+        <div class="col-md-6">
+            <table class="table table-sm mb-0">
+                <tr><td>Total Quantity</td><td class="text-end">{{ "%.2f"|format(payment.total_quantity) }} L</td></tr>
+                <tr><td>Gross Amount</td><td class="text-end">₹{{ "%.2f"|format(payment.gross_amount) }}</td></tr>
+                <tr><td>Deductions</td><td class="text-end">- ₹{{ "%.2f"|format(payment.deductions) }}</td></tr>
+                <tr><td>Previous Pending Amount</td><td class="text-end">+ ₹{{ "%.2f"|format(payment.previous_pending_amount) }}</td></tr>
+                <tr class="table-light"><td><strong>Final Payable Amount</strong></td><td class="text-end"><strong>₹{{ "%.2f"|format(payment.final_payable_amount) }}</strong></td></tr>
+                <tr><td>Amount Paid</td><td class="text-end">₹{{ "%.2f"|format(payment.amount_paid) }}</td></tr>
+                <tr><td><strong>Remaining Balance</strong></td><td class="text-end"><strong>₹{{ "%.2f"|format(payment.remaining_amount) }}</strong></td></tr>
+                <tr>
+                    <td>Payment Status</td>
+                    <td class="text-end">
+                        {% if payment.payment_status == 'Paid' %}
+                            <span class="badge bg-success">Paid</span>
+                        {% elif payment.payment_status == 'Partially Paid' %}
+                            <span class="badge bg-warning text-dark">Partially Paid</span>
+                        {% else %}
+                            <span class="badge bg-secondary">Pending</span>
+                        {% endif %}
+                    </td>
+                </tr>
+            </table>
+        </div>
+    </div>
+
+    <p class="text-muted text-center mt-4 mb-0">Thank you for your business.</p>
+</div>
+{% endblock %}

@@ -1,0 +1,117 @@
+{% extends "base.html" %}
+{% block title %}Milk Entries - Milk Dairy Management{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h2 class="mb-0">Milk Collection Entries</h2>
+    <a href="{{ url_for('milk_entries.add_entry') }}" class="btn btn-primary">+ Add Entry</a>
+</div>
+
+<form method="GET" class="row g-2 mb-3">
+    <div class="col-sm-6 col-md-2">
+        <label class="form-label small mb-1">From</label>
+        <input type="date" name="date_from" class="form-control" value="{{ date_from }}">
+    </div>
+    <div class="col-sm-6 col-md-2">
+        <label class="form-label small mb-1">To</label>
+        <input type="date" name="date_to" class="form-control" value="{{ date_to }}">
+    </div>
+    <div class="col-sm-6 col-md-2">
+        <label class="form-label small mb-1">Shift</label>
+        <select name="shift" class="form-select">
+            <option value="" {% if not shift %}selected{% endif %}>All</option>
+            <option value="Morning" {% if shift == 'Morning' %}selected{% endif %}>Morning</option>
+            <option value="Evening" {% if shift == 'Evening' %}selected{% endif %}>Evening</option>
+        </select>
+    </div>
+    <div class="col-sm-6 col-md-2">
+        <label class="form-label small mb-1">Milk Type</label>
+        <select name="milk_type" class="form-select">
+            <option value="" {% if not milk_type %}selected{% endif %}>All</option>
+            <option value="Cow" {% if milk_type == 'Cow' %}selected{% endif %}>Cow</option>
+            <option value="Buffalo" {% if milk_type == 'Buffalo' %}selected{% endif %}>Buffalo</option>
+        </select>
+    </div>
+    <div class="col-sm-8 col-md-3">
+        <label class="form-label small mb-1">Customer</label>
+        <select name="customer_id" class="form-select">
+            <option value="">All customers</option>
+            {% for c in customers %}
+            <option value="{{ c.customer_id }}" {% if customer_id == c.customer_id %}selected{% endif %}>
+                {{ c.name }} ({{ c.customer_id }})
+            </option>
+            {% endfor %}
+        </select>
+    </div>
+    <div class="col-sm-4 col-md-1 d-flex align-items-end">
+        <button type="submit" class="btn btn-outline-secondary w-100">Filter</button>
+    </div>
+</form>
+
+<div class="row mb-3">
+    <div class="col-md-4">
+        <div class="card shadow-sm text-center p-2">
+            <div class="text-muted small">Entries Shown</div>
+            <div class="fs-4 fw-bold">{{ totals.count }}</div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card shadow-sm text-center p-2">
+            <div class="text-muted small">Total Quantity</div>
+            <div class="fs-4 fw-bold">{{ "%.2f"|format(totals.quantity) }} L</div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card shadow-sm text-center p-2">
+            <div class="text-muted small">Total Amount</div>
+            <div class="fs-4 fw-bold">₹{{ "%.2f"|format(totals.amount) }}</div>
+        </div>
+    </div>
+</div>
+
+<div class="card shadow-sm">
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>Date</th>
+                    <th>Shift</th>
+                    <th>Customer</th>
+                    <th>Type</th>
+                    <th>Qty (L)</th>
+                    <th>Fat %</th>
+                    <th>SNF %</th>
+                    <th>Rate</th>
+                    <th>Amount</th>
+                    <th class="text-end">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for e in entries %}
+                <tr>
+                    <td>{{ e.date.strftime('%d %b %Y') }}</td>
+                    <td>{{ e.shift }}</td>
+                    <td>{{ e.customer_name }}</td>
+                    <td>{{ e.milk_type }}</td>
+                    <td>{{ "%.2f"|format(e.quantity) }}</td>
+                    <td>{{ e.fat_percentage }}</td>
+                    <td>{{ e.snf_percentage }}</td>
+                    <td>₹{{ "%.2f"|format(e.rate_per_litre) }}</td>
+                    <td>₹{{ "%.2f"|format(e.total_amount) }}</td>
+                    <td class="text-end">
+                        <a
+                            href="{{ url_for('milk_entries.edit_entry', entry_id=e._id) }}"
+                            class="btn btn-sm btn-outline-primary"
+                        >Edit</a>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="10" class="text-center text-muted py-4">No milk entries found.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

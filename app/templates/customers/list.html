@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+{% block title %}Customers - Milk Dairy Management{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h2 class="mb-0">Customers</h2>
+    <a href="{{ url_for('customers.add_customer') }}" class="btn btn-primary">+ Add Customer</a>
+</div>
+
+<form method="GET" class="row g-2 mb-3">
+    <div class="col-sm-6 col-md-5">
+        <input
+            type="text"
+            name="q"
+            class="form-control"
+            placeholder="Search by name, mobile, or customer ID"
+            value="{{ query_text }}"
+        >
+    </div>
+    <div class="col-sm-4 col-md-3">
+        <select name="status" class="form-select">
+            <option value="" {% if not status_filter %}selected{% endif %}>All statuses</option>
+            <option value="Active" {% if status_filter == 'Active' %}selected{% endif %}>Active</option>
+            <option value="Inactive" {% if status_filter == 'Inactive' %}selected{% endif %}>Inactive</option>
+        </select>
+    </div>
+    <div class="col-sm-2">
+        <button type="submit" class="btn btn-outline-secondary w-100">Filter</button>
+    </div>
+</form>
+
+<div class="card shadow-sm">
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>Customer ID</th>
+                    <th>Name</th>
+                    <th>Mobile</th>
+                    <th>Village</th>
+                    <th>Registered</th>
+                    <th>Status</th>
+                    <th class="text-end">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for customer in customers %}
+                <tr>
+                    <td><code>{{ customer.customer_id }}</code></td>
+                    <td>
+                        <a href="{{ url_for('customers.profile', customer_id=customer.customer_id) }}">
+                            {{ customer.name }}
+                        </a>
+                    </td>
+                    <td>{{ customer.mobile_number }}</td>
+                    <td>{{ customer.village }}</td>
+                    <td>{{ customer.registration_date.strftime('%d %b %Y') }}</td>
+                    <td>
+                        {% if customer.status == 'Active' %}
+                            <span class="badge bg-success">Active</span>
+                        {% else %}
+                            <span class="badge bg-secondary">Inactive</span>
+                        {% endif %}
+                    </td>
+                    <td class="text-end">
+                        <a
+                            href="{{ url_for('customers.edit_customer', customer_id=customer.customer_id) }}"
+                            class="btn btn-sm btn-outline-primary"
+                        >Edit</a>
+                        {% if customer.status == 'Active' %}
+                        <form
+                            method="POST"
+                            action="{{ url_for('customers.deactivate', customer_id=customer.customer_id) }}"
+                            class="d-inline"
+                            onsubmit="return confirm('Mark {{ customer.name }} as inactive?');"
+                        >
+                            <button type="submit" class="btn btn-sm btn-outline-danger">Deactivate</button>
+                        </form>
+                        {% else %}
+                        <form
+                            method="POST"
+                            action="{{ url_for('customers.activate', customer_id=customer.customer_id) }}"
+                            class="d-inline"
+                        >
+                            <button type="submit" class="btn btn-sm btn-outline-success">Reactivate</button>
+                        </form>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="7" class="text-center text-muted py-4">No customers found.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block title %}{{ milk_type }} Rate Configuration - Milk Dairy Management{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card shadow-sm">
+            <div class="card-body p-4">
+                <h3 class="mb-4">{{ milk_type }} Milk Rate Configuration</h3>
+
+                <form method="POST">
+                    <div class="mb-3">
+                        <label class="form-label">Base Rate (₹)</label>
+                        <input
+                            type="number" step="0.01" name="base_rate" class="form-control"
+                            value="{{ config.base_rate if config.base_rate is defined else '' }}" required
+                        >
+                        <small class="text-muted">Flat starting price per litre before fat/SNF adjustments.</small>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Fat Rate per Point (₹)</label>
+                        <input
+                            type="number" step="0.01" name="fat_rate_per_point" class="form-control"
+                            value="{{ config.fat_rate_per_point if config.fat_rate_per_point is defined else '' }}" required
+                        >
+                        <small class="text-muted">Added to the rate for every 1% of fat content.</small>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">SNF Rate per Point (₹)</label>
+                        <input
+                            type="number" step="0.01" name="snf_rate_per_point" class="form-control"
+                            value="{{ config.snf_rate_per_point if config.snf_rate_per_point is defined else '' }}" required
+                        >
+                        <small class="text-muted">Added to the rate for every 1% of SNF content.</small>
+                    </div>
+
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary">Save Configuration</button>
+                        <a href="{{ url_for('rate_config.list_configs') }}" class="btn btn-outline-secondary">Cancel</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
