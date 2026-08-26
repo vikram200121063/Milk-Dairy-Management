@@ -1,9 +1,9 @@
 {% extends "base.html" %}
-{% block title %}Dashboard - Milk Dairy Management{% endblock %}
+{% block title %}Dashboard - OM Dairy{% endblock %}
 
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4">
-    <h2 class="mb-0">Welcome, {{ username }} 👋</h2>
+    <h2 class="mb-0">Welcome, {{ username }}</h2>
     <div>
         <a href="{{ url_for('milk_entries.add_entry') }}" class="btn btn-primary btn-sm">+ Add Milk Entry</a>
         <a href="{{ url_for('customers.add_customer') }}" class="btn btn-outline-primary btn-sm">+ Add Customer</a>
@@ -12,45 +12,66 @@
 
 <div class="row g-3 mb-4">
     <div class="col-6 col-md-3">
-        <div class="card shadow-sm text-center p-3 h-100">
+        <div class="card shadow-sm stat-card text-center p-3 h-100">
+            <svg class="stat-icon mx-auto" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M17 20v-1a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v1"/><circle cx="9" cy="7" r="3.2"/><path d="M20 20v-1a3.5 3.5 0 0 0-2.5-3.36"/><path d="M14.7 3.8a3.2 3.2 0 0 1 0 6"/>
+            </svg>
             <div class="text-muted small">Total Customers</div>
             <div class="fs-3 fw-bold">{{ total_customers }}</div>
         </div>
     </div>
     <div class="col-6 col-md-3">
-        <div class="card shadow-sm text-center p-3 h-100">
+        <div class="card shadow-sm stat-card accent-success text-center p-3 h-100">
+            <svg class="stat-icon mx-auto" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M9 12.5l2 2 4-4.5"/><circle cx="12" cy="12" r="9"/>
+            </svg>
             <div class="text-muted small">Active Customers</div>
-            <div class="fs-3 fw-bold text-success">{{ active_customers }}</div>
+            <div class="fs-3 fw-bold">{{ active_customers }}</div>
         </div>
     </div>
     <div class="col-6 col-md-3">
-        <div class="card shadow-sm text-center p-3 h-100">
+        <div class="card shadow-sm stat-card accent-marigold text-center p-3 h-100">
+            <svg class="stat-icon mx-auto" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 3c3 4 5 6.6 5 9.5a5 5 0 0 1-10 0C7 9.6 9 7 12 3z"/>
+            </svg>
             <div class="text-muted small">Today's Collections</div>
             <div class="fs-3 fw-bold">{{ today_stats.count }}</div>
         </div>
     </div>
     <div class="col-6 col-md-3">
-        <div class="card shadow-sm text-center p-3 h-100">
+        <div class="card shadow-sm stat-card accent-copper text-center p-3 h-100">
+            <svg class="stat-icon mx-auto" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M6 3h9l-1 4.5c1.8.7 3 2.4 3 4.5a5.5 5.5 0 0 1-5.5 5.5H8A5.5 5.5 0 0 1 2.5 12c0-2.1 1.2-3.8 3-4.5L6 3z"/><path d="M6 3l1 4.5h6L14 3"/>
+            </svg>
             <div class="text-muted small">Today's Quantity</div>
             <div class="fs-3 fw-bold">{{ "%.1f"|format(today_stats.quantity) }} L</div>
         </div>
     </div>
     <div class="col-6 col-md-4">
-        <div class="card shadow-sm text-center p-3 h-100">
+        <div class="card shadow-sm stat-card text-center p-3 h-100">
+            <svg class="stat-icon mx-auto" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M6 4h9M6 8h9M6 4l7 16M6 8l7 5"/>
+            </svg>
             <div class="text-muted small">Today's Estimated Amount</div>
             <div class="fs-3 fw-bold">₹{{ "%.2f"|format(today_stats.amount) }}</div>
         </div>
     </div>
     <div class="col-6 col-md-4">
-        <div class="card shadow-sm text-center p-3 h-100">
+        <div class="card shadow-sm stat-card accent-marigold text-center p-3 h-100">
+            <svg class="stat-icon mx-auto" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.3 2"/>
+            </svg>
             <div class="text-muted small">Pending Payment Records</div>
-            <div class="fs-3 fw-bold text-warning">{{ pending_stats.count }}</div>
+            <div class="fs-3 fw-bold">{{ pending_stats.count }}</div>
         </div>
     </div>
     <div class="col-12 col-md-4">
-        <div class="card shadow-sm text-center p-3 h-100">
+        <div class="card shadow-sm stat-card accent-danger text-center p-3 h-100">
+            <svg class="stat-icon mx-auto" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 3.5 21 19H3L12 3.5z"/><path d="M12 10v4.2"/><circle cx="12" cy="17" r="0.4" fill="currentColor"/>
+            </svg>
             <div class="text-muted small">Total Pending Amount</div>
-            <div class="fs-3 fw-bold text-danger">₹{{ "%.2f"|format(pending_stats.amount) }}</div>
+            <div class="fs-3 fw-bold">₹{{ "%.2f"|format(pending_stats.amount) }}</div>
         </div>
     </div>
 </div>

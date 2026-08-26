@@ -29,7 +29,7 @@ class Config:
     DEBUG = os.environ.get("FLASK_DEBUG", "False").lower() in ("true", "1")
 
     # Business details shown on printed/PDF invoices
-    DAIRY_NAME = os.environ.get("DAIRY_NAME", "My Milk Dairy")
+    DAIRY_NAME = os.environ.get("DAIRY_NAME", "OM Dairy")
     DAIRY_ADDRESS = os.environ.get("DAIRY_ADDRESS", "Village Road, Your Town")
     DAIRY_CONTACT = os.environ.get("DAIRY_CONTACT", "+91 90000 00000")
 

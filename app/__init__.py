@@ -134,4 +134,24 @@ def create_app():
         )
         click.echo(f"Admin user '{username}' created successfully.")
 
+    # --- CLI command: flask reset-password ---
+    # Use this when you forget an existing admin's password, instead of
+    # creating a throwaway new account. Requires terminal/server access,
+    # same as create-admin - there is still no public reset-password page.
+    @app.cli.command("reset-password")
+    @click.argument("username")
+    @click.password_option()
+    def reset_password(username, password):
+        """Reset an existing admin's password. Usage: flask reset-password <username>"""
+        user = db.users.find_one({"username": username})
+        if not user:
+            click.echo(f"Error: no user found with username '{username}'.")
+            return
+
+        db.users.update_one(
+            {"username": username},
+            {"$set": {"password_hash": generate_password_hash(password)}},
+        )
+        click.echo(f"Password for '{username}' has been reset.")
+
     return app

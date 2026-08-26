@@ -1,0 +1,30 @@
+<svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="OM Dairy logo">
+  <defs>
+    <linearGradient id="badgeBg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#22543F"/>
+      <stop offset="100%" stop-color="#143229"/>
+    </linearGradient>
+    <linearGradient id="dropGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#F2B33D"/>
+      <stop offset="100%" stop-color="#C27E09"/>
+    </linearGradient>
+  </defs>
+
+  <circle cx="60" cy="60" r="56" fill="url(#badgeBg)"/>
+  <circle cx="60" cy="60" r="56" fill="none" stroke="#E2960F" stroke-width="2.5" opacity="0.85"/>
+
+  <!-- Milk-drop accent -->
+  <path
+    d="M95 18 C95 18 103 27 103 33.5 C103 38.19 99.19 42 94.5 42 C89.81 42 86 38.19 86 33.5 C86 27 95 18 95 18 Z"
+    fill="url(#dropGrad)"
+  />
+
+  <text
+    x="58" y="80"
+    text-anchor="middle"
+    font-family="Fraunces, Georgia, 'Times New Roman', serif"
+    font-weight="700"
+    font-size="46"
+    fill="#FBF3E4"
+  >OM</text>
+</svg>

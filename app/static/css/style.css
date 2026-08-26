@@ -1,0 +1,332 @@
+/* ==========================================================================
+   OM Dairy — Design System
+   Palette grounded in the dairy's own world: pasture green, marigold/
+   turmeric gold, warm milk-cream, and brass/copper — not a generic
+   tech-startup palette. Fraunces (warm serif) carries brand moments;
+   Inter (clean sans) carries every working UI surface: tables, forms,
+   data. Used with restraint — most of the app stays quiet and legible;
+   the boldness lives in the logo, navbar, and login screen.
+   ========================================================================== */
+
+:root {
+    --color-cream: #FBF3E4;
+    --color-cream-alt: #F3E7CC;
+    --color-forest: #1F4A3A;
+    --color-forest-dark: #143229;
+    --color-marigold: #E2960F;
+    --color-marigold-dark: #C27E09;
+    --color-copper: #B5642E;
+    --color-ink: #241F16;
+    --color-ink-muted: #6B6455;
+    --color-border: #E4D6B4;
+    --color-success: #2F7A4F;
+    --color-success-soft: #E4F1E8;
+    --color-warning: #E2960F;
+    --color-warning-soft: #FCF0DA;
+    --color-danger: #B23B2E;
+    --color-danger-soft: #F8E5E2;
+
+    --font-display: "Fraunces", Georgia, "Times New Roman", serif;
+    --font-body: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+
+    --radius-sm: 8px;
+    --radius-md: 12px;
+    --radius-lg: 18px;
+    --shadow-soft: 0 2px 10px rgba(36, 31, 22, 0.06), 0 1px 2px rgba(36, 31, 22, 0.05);
+    --shadow-lifted: 0 8px 24px rgba(20, 50, 41, 0.12);
+}
+
+/* ---- Base ---- */
+body {
+    background-color: var(--color-cream);
+    color: var(--color-ink);
+    font-family: var(--font-body);
+    font-variant-numeric: tabular-nums;
+}
+
+h1, h2, h3, h4, h5, .card-title {
+    font-family: var(--font-display);
+    color: var(--color-forest-dark);
+    font-weight: 600;
+}
+
+a {
+    color: var(--color-forest);
+}
+a:hover {
+    color: var(--color-marigold-dark);
+}
+
+code {
+    color: var(--color-copper);
+    background: var(--color-cream-alt);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 0.85em;
+}
+
+/* ---- Navbar ---- */
+.navbar.bg-dark {
+    background: linear-gradient(135deg, var(--color-forest) 0%, var(--color-forest-dark) 100%) !important;
+    box-shadow: 0 2px 12px rgba(20, 50, 41, 0.25);
+}
+
+.brand-lockup {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    text-decoration: none;
+}
+.brand-lockup img {
+    height: 34px;
+    width: 34px;
+}
+.brand-lockup .brand-word {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 1.25rem;
+    color: var(--color-cream);
+    letter-spacing: 0.01em;
+}
+
+.navbar .nav-link {
+    font-weight: 500;
+    font-size: 0.92rem;
+    opacity: 0.88;
+    transition: opacity 0.15s ease;
+}
+.navbar .nav-link:hover {
+    opacity: 1;
+    color: var(--color-marigold) !important;
+}
+.navbar-text {
+    font-size: 0.85rem;
+    opacity: 0.75;
+}
+
+/* ---- Buttons ---- */
+.btn {
+    border-radius: var(--radius-sm);
+    font-weight: 600;
+    font-size: 0.9rem;
+    letter-spacing: 0.01em;
+    padding: 0.5rem 1.1rem;
+    transition: transform 0.1s ease, box-shadow 0.15s ease;
+}
+.btn-sm {
+    padding: 0.32rem 0.75rem;
+    font-size: 0.82rem;
+}
+.btn-primary {
+    background-color: var(--color-forest);
+    border-color: var(--color-forest);
+}
+.btn-primary:hover, .btn-primary:focus {
+    background-color: var(--color-forest-dark);
+    border-color: var(--color-forest-dark);
+}
+.btn-outline-primary {
+    color: var(--color-forest);
+    border-color: var(--color-forest);
+}
+.btn-outline-primary:hover {
+    background-color: var(--color-forest);
+    border-color: var(--color-forest);
+}
+.btn-outline-secondary {
+    color: var(--color-ink-muted);
+    border-color: var(--color-border);
+}
+.btn-outline-secondary:hover {
+    background-color: var(--color-cream-alt);
+    border-color: var(--color-border);
+    color: var(--color-ink);
+}
+.btn-outline-danger {
+    color: var(--color-danger);
+    border-color: var(--color-danger);
+}
+.btn-outline-danger:hover {
+    background-color: var(--color-danger);
+    border-color: var(--color-danger);
+}
+.btn-outline-success {
+    color: var(--color-success);
+    border-color: var(--color-success);
+}
+.btn-outline-success:hover {
+    background-color: var(--color-success);
+    border-color: var(--color-success);
+}
+.btn:active {
+    transform: translateY(1px);
+}
+.btn-check:checked + .btn-outline-primary {
+    background-color: var(--color-forest);
+    border-color: var(--color-forest);
+    color: var(--color-cream);
+}
+
+/* ---- Cards ---- */
+.card {
+    background-color: #FFFFFF;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-soft);
+}
+.card-header {
+    background-color: var(--color-cream-alt);
+    border-bottom: 1px solid var(--color-border);
+    font-weight: 600;
+    color: var(--color-forest-dark);
+    border-top-left-radius: var(--radius-lg) !important;
+    border-top-right-radius: var(--radius-lg) !important;
+}
+
+.stat-card { border-top: 3px solid var(--color-forest); }
+.stat-card .stat-icon { color: var(--color-forest); }
+.stat-card.accent-success { border-top-color: var(--color-success); }
+.stat-card.accent-success .stat-icon { color: var(--color-success); }
+.stat-card.accent-marigold { border-top-color: var(--color-marigold); }
+.stat-card.accent-marigold .stat-icon { color: var(--color-marigold-dark); }
+.stat-card.accent-copper { border-top-color: var(--color-copper); }
+.stat-card.accent-copper .stat-icon { color: var(--color-copper); }
+.stat-card.accent-danger { border-top-color: var(--color-danger); }
+.stat-card.accent-danger .stat-icon { color: var(--color-danger); }
+.stat-card .stat-icon {
+    width: 22px;
+    height: 22px;
+    margin-bottom: 4px;
+}
+
+/* ---- Tables ---- */
+.table thead.table-light,
+.table > :not(caption) > * > th {
+    background-color: var(--color-cream-alt) !important;
+    color: var(--color-forest-dark);
+    font-weight: 600;
+    font-size: 0.82rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    border-bottom: 1px solid var(--color-border);
+}
+.table > :not(caption) > * > td {
+    border-bottom-color: #F0E6CC;
+    vertical-align: middle;
+}
+.table-hover > tbody > tr:hover > * {
+    background-color: #FBF3E4;
+}
+.table-light, tr.table-light {
+    --bs-table-bg: var(--color-cream-alt) !important;
+}
+
+/* ---- Badges ---- */
+.badge {
+    font-weight: 600;
+    padding: 0.4em 0.7em;
+    border-radius: 999px;
+    font-size: 0.76rem;
+    letter-spacing: 0.02em;
+}
+.badge.bg-success {
+    background-color: var(--color-success-soft) !important;
+    color: var(--color-success) !important;
+}
+.badge.bg-secondary {
+    background-color: #EEE9DC !important;
+    color: var(--color-ink-muted) !important;
+}
+.badge.bg-warning {
+    background-color: var(--color-warning-soft) !important;
+    color: var(--color-marigold-dark) !important;
+}
+.badge.bg-danger {
+    background-color: var(--color-danger-soft) !important;
+    color: var(--color-danger) !important;
+}
+
+/* ---- Forms ---- */
+.form-control, .form-select {
+    border-color: var(--color-border);
+    border-radius: var(--radius-sm);
+}
+.form-control:focus, .form-select:focus {
+    border-color: var(--color-forest);
+    box-shadow: 0 0 0 0.2rem rgba(31, 74, 58, 0.15);
+}
+.form-label {
+    font-weight: 600;
+    font-size: 0.86rem;
+    color: var(--color-ink);
+}
+
+/* ---- Alerts ---- */
+.alert {
+    border-radius: var(--radius-md);
+    border: none;
+}
+.alert-success { background-color: var(--color-success-soft); color: var(--color-success); }
+.alert-danger { background-color: var(--color-danger-soft); color: var(--color-danger); }
+.alert-warning { background-color: var(--color-warning-soft); color: var(--color-marigold-dark); }
+.alert-info { background-color: #E1EEEC; color: #276358; }
+
+/* ---- Login page ---- */
+.login-shell {
+    min-height: calc(100vh - 40px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    overflow: hidden;
+}
+.login-shell::before {
+    content: "";
+    position: absolute;
+    top: -120px;
+    right: -120px;
+    width: 420px;
+    height: 420px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(226, 150, 15, 0.25) 0%, rgba(226, 150, 15, 0) 70%);
+    pointer-events: none;
+}
+.login-shell::after {
+    content: "";
+    position: absolute;
+    bottom: -140px;
+    left: -140px;
+    width: 380px;
+    height: 380px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(31, 74, 58, 0.18) 0%, rgba(31, 74, 58, 0) 70%);
+    pointer-events: none;
+}
+.login-card {
+    position: relative;
+    z-index: 1;
+    max-width: 380px;
+    width: 100%;
+}
+.login-logo {
+    width: 64px;
+    height: 64px;
+    margin: 0 auto 14px;
+    display: block;
+}
+.login-title {
+    font-family: var(--font-display);
+    font-size: 1.6rem;
+    color: var(--color-forest-dark);
+    text-align: center;
+    margin-bottom: 2px;
+}
+.login-subtitle {
+    text-align: center;
+    color: var(--color-ink-muted);
+    font-size: 0.88rem;
+    margin-bottom: 1.75rem;
+}
+
+/* ---- Utility ---- */
+.text-muted { color: var(--color-ink-muted) !important; }
