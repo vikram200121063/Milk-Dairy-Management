@@ -19,6 +19,7 @@ customers_bp = Blueprint("customers", __name__, url_prefix="/customers")
 # Indian 10-digit mobile numbers start with 6-9. Adjust this pattern if
 # your dairy's customers use a different numbering format.
 MOBILE_RE = re.compile(r"^[6-9]\d{9}$")
+EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 
 
 def _read_and_validate_form(form):
@@ -31,6 +32,7 @@ def _read_and_validate_form(form):
     data = {
         "name": form.get("name", "").strip(),
         "mobile_number": form.get("mobile_number", "").strip(),
+        "email": form.get("email", "").strip(),
         "address": form.get("address", "").strip(),
         "village": form.get("village", "").strip(),
     }
@@ -40,6 +42,10 @@ def _read_and_validate_form(form):
         errors.append("Customer name is required.")
     if not MOBILE_RE.match(data["mobile_number"]):
         errors.append("Enter a valid 10-digit mobile number.")
+    # Email is optional (used only for invoice/milk-entry notifications),
+    # but if one is provided it must look like a real address.
+    if data["email"] and not EMAIL_RE.match(data["email"]):
+        errors.append("Enter a valid email address, or leave it blank.")
     if not data["village"]:
         errors.append("Village/Location is required.")
 
@@ -102,6 +108,7 @@ def add_customer():
                 "customer_id": customer_id,
                 "name": data["name"],
                 "mobile_number": data["mobile_number"],
+                "email": data["email"],
                 "address": data["address"],
                 "village": data["village"],
                 "registration_date": datetime.now(timezone.utc),
@@ -147,6 +154,7 @@ def edit_customer(customer_id):
                 "$set": {
                     "name": data["name"],
                     "mobile_number": data["mobile_number"],
+                    "email": data["email"],
                     "address": data["address"],
                     "village": data["village"],
                 }

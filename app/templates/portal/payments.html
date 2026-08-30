@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+{% block title %}My Invoices - OM Dairy{% endblock %}
+
+{% block content %}
+<h2 class="mb-3">My Payments &amp; Invoices</h2>
+
+<div class="row mb-3">
+    <div class="col-md-4">
+        <div class="card shadow-sm text-center p-2">
+            <div class="text-muted small">Total Final Payable</div>
+            <div class="fs-5 fw-bold">₹{{ "%.2f"|format(totals.final) }}</div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card shadow-sm text-center p-2">
+            <div class="text-muted small">Total Paid</div>
+            <div class="fs-5 fw-bold text-success">₹{{ "%.2f"|format(totals.paid) }}</div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card shadow-sm text-center p-2">
+            <div class="text-muted small">Total Remaining</div>
+            <div class="fs-5 fw-bold text-danger">₹{{ "%.2f"|format(totals.remaining) }}</div>
+        </div>
+    </div>
+</div>
+
+<div class="card shadow-sm">
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>Period</th>
+                    <th>Qty (L)</th>
+                    <th>Gross</th>
+                    <th>Deductions</th>
+                    <th>Prev. Pending</th>
+                    <th>Final Payable</th>
+                    <th>Paid</th>
+                    <th>Remaining</th>
+                    <th>Status</th>
+                    <th class="text-end">Invoice</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for p in payments %}
+                <tr>
+                    <td>{{ p.payment_period }}</td>
+                    <td>{{ "%.2f"|format(p.total_quantity) }}</td>
+                    <td>₹{{ "%.2f"|format(p.gross_amount) }}</td>
+                    <td>₹{{ "%.2f"|format(p.deductions) }}</td>
+                    <td>₹{{ "%.2f"|format(p.previous_pending_amount) }}</td>
+                    <td><strong>₹{{ "%.2f"|format(p.final_payable_amount) }}</strong></td>
+                    <td>₹{{ "%.2f"|format(p.amount_paid) }}</td>
+                    <td>₹{{ "%.2f"|format(p.remaining_amount) }}</td>
+                    <td>
+                        {% if p.payment_status == 'Paid' %}
+                            <span class="badge bg-success">Paid</span>
+                        {% elif p.payment_status == 'Partially Paid' %}
+                            <span class="badge bg-warning text-dark">Partially Paid</span>
+                        {% else %}
+                            <span class="badge bg-secondary">Pending</span>
+                        {% endif %}
+                    </td>
+                    <td class="text-end">
+                        <a href="{{ url_for('customer_portal.invoice', payment_id=p.payment_id) }}" class="btn btn-sm btn-outline-secondary">
+                            View
+                        </a>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="10" class="text-center text-muted py-4">
+                        No payment records yet.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

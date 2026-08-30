@@ -15,11 +15,22 @@ from pymongo.errors import DuplicateKeyError
 
 from app.utils.decorators import login_required
 from app.services.rate_service import calculate_rate
+from app.services import notification_service
 
 milk_entries_bp = Blueprint("milk_entries", __name__, url_prefix="/milk-entries")
 
 SHIFTS = ("Morning", "Evening")
 MILK_TYPES = ("Cow", "Buffalo")
+
+# Used only to pre-fill the "Send All" shift dropdown with a sensible
+# guess: before this hour, assume we're sending the morning collection's
+# notifications; at/after it, assume evening. Purely a UI convenience -
+# the admin can always override it before sending.
+SHIFT_DEFAULT_CUTOFF_HOUR = 14
+
+
+def _default_notify_shift():
+    return "Morning" if datetime.now().hour < SHIFT_DEFAULT_CUTOFF_HOUR else "Evening"
 
 
 def _parse_date(date_str):
@@ -163,6 +174,8 @@ def list_entries():
         shift=shift,
         milk_type=milk_type,
         customer_id=customer_id,
+        default_notify_date=date_cls.today().isoformat(),
+        default_notify_shift=_default_notify_shift(),
     )
 
 
@@ -361,3 +374,88 @@ def edit_entry(entry_id):
         entry_id=entry_id,
         today=date_cls.today().isoformat(),
     )
+
+
+# ---------------------------------------------------------------------------
+# Email notifications
+# ---------------------------------------------------------------------------
+
+
+def _summarize_notify_result(result):
+    """Turns {"email": "sent"/error} into one short line."""
+    status = result.get("email")
+    if status == "sent":
+        return "Email sent."
+    if status:
+        return f"Email: {status}"
+    return "Nothing to send."
+
+
+@milk_entries_bp.route("/<entry_id>/notify", methods=["POST"])
+@login_required
+def notify_entry(entry_id):
+    """Sends the email for one milk entry to its customer, on demand."""
+    try:
+        oid = ObjectId(entry_id)
+    except InvalidId:
+        flash("Invalid milk entry link.", "danger")
+        return redirect(url_for("milk_entries.list_entries"))
+
+    entry = current_app.db.milk_entries.find_one({"_id": oid})
+    if not entry:
+        flash("Milk entry not found.", "danger")
+        return redirect(url_for("milk_entries.list_entries"))
+
+    result = notification_service.notify_milk_entry(current_app.db, entry)
+    category = "success" if result.get("email") == "sent" else "warning"
+    flash(
+        f"{entry['customer_name']} ({entry['date'].strftime('%d %b')}, {entry['shift']}): "
+        f"{_summarize_notify_result(result)}",
+        category,
+    )
+    return redirect(request.referrer or url_for("milk_entries.list_entries"))
+
+
+@milk_entries_bp.route("/notify-bulk", methods=["POST"])
+@login_required
+def notify_bulk():
+    """
+    Sends the email for EVERY milk entry on a given date + shift - the
+    "Send All" button on the milk entries page. Defaults to today's date
+    and a shift guessed from the current time, but the admin can change
+    either before submitting.
+    """
+    date_str = request.form.get("notify_date", "").strip()
+    shift = request.form.get("notify_shift", "").strip()
+
+    if shift not in SHIFTS:
+        flash("Please select a valid shift (Morning or Evening).", "danger")
+        return redirect(url_for("milk_entries.list_entries"))
+
+    try:
+        target_date = _parse_date(date_str)
+    except ValueError:
+        flash("Please select a valid date.", "danger")
+        return redirect(url_for("milk_entries.list_entries"))
+
+    entries = list(
+        current_app.db.milk_entries.find({"date": target_date, "shift": shift})
+    )
+    if not entries:
+        flash(f"No milk entries found for {date_str} ({shift}).", "warning")
+        return redirect(url_for("milk_entries.list_entries"))
+
+    email_sent = email_failed = 0
+    for entry in entries:
+        result = notification_service.notify_milk_entry(current_app.db, entry)
+        if result["email"] == "sent":
+            email_sent += 1
+        elif result["email"] not in (None, notification_service.NO_EMAIL_ON_FILE):
+            email_failed += 1
+
+    flash(
+        f"Notified {len(entries)} customer(s) for {date_str} ({shift}) \u2013 "
+        f"Email: {email_sent} sent / {email_failed} failed.",
+        "info",
+    )
+    return redirect(url_for("milk_entries.list_entries"))

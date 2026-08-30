@@ -31,10 +31,29 @@
                 <a class="nav-link text-light me-3" href="{{ url_for('milk_entries.list_entries') }}">Milk Entries</a>
                 <a class="nav-link text-light me-3" href="{{ url_for('rate_config.list_configs') }}">Rate Config</a>
                 <a class="nav-link text-light me-3" href="{{ url_for('payments.list_payments') }}">Payments</a>
+                <a class="nav-link text-light me-3" href="{{ url_for('notifications.list_notifications') }}">Notifications</a>
                 <span class="navbar-text text-light me-3">
                     Signed in as {{ session.get('username') }}
                 </span>
                 <a class="btn btn-outline-light btn-sm" href="{{ url_for('auth.logout') }}">Logout</a>
+            </div>
+        </div>
+    </nav>
+    {% elif session.get('customer_id') %}
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container">
+            <a class="brand-lockup" href="{{ url_for('customer_portal.dashboard') }}">
+                <img src="{{ url_for('static', filename='img/logo-mark.svg') }}" alt="OM Dairy">
+                <span class="brand-word">OM Dairy</span>
+            </a>
+            <div class="d-flex align-items-center">
+                <a class="nav-link text-light me-3" href="{{ url_for('customer_portal.dashboard') }}">Dashboard</a>
+                <a class="nav-link text-light me-3" href="{{ url_for('customer_portal.milk_entries') }}">My Milk Records</a>
+                <a class="nav-link text-light me-3" href="{{ url_for('customer_portal.payments') }}">My Invoices</a>
+                <span class="navbar-text text-light me-3">
+                    Signed in as {{ session.get('customer_name') }}
+                </span>
+                <a class="btn btn-outline-light btn-sm" href="{{ url_for('customer_portal.logout') }}">Logout</a>
             </div>
         </div>
     </nav>

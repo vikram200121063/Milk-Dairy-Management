@@ -49,6 +49,20 @@
                 Safe to click again anytime - this recalculates totals but never erases a payment already recorded.
             </small>
         </form>
+
+        {% if payments %}
+        <form method="POST" action="{{ url_for('payments.notify_cycle') }}" class="mt-3">
+            <input type="hidden" name="year" value="{{ year }}">
+            <input type="hidden" name="month" value="{{ month }}">
+            <input type="hidden" name="cycle" value="{{ cycle }}">
+            <button type="submit" class="btn btn-outline-secondary">
+                📩 Email All Invoices for {{ period }}
+            </button>
+            <small class="text-muted d-block mt-1">
+                Emails every customer in this cycle their invoice (customers without an email on file are skipped).
+            </small>
+        </form>
+        {% endif %}
     </div>
 </div>
 
@@ -123,6 +137,11 @@
                         <a href="{{ url_for('payments.invoice', payment_id=p.payment_id) }}" class="btn btn-sm btn-outline-secondary">
                             Invoice
                         </a>
+                        <form method="POST" action="{{ url_for('payments.notify', payment_id=p.payment_id) }}" class="d-inline">
+                            <button type="submit" class="btn btn-sm btn-outline-secondary" title="Email invoice to customer">
+                                📩
+                            </button>
+                        </form>
                     </td>
                 </tr>
                 {% else %}

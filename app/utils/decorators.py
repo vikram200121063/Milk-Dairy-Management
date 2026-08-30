@@ -24,3 +24,26 @@ def login_required(view_func):
         return view_func(*args, **kwargs)
 
     return wrapped_view
+
+
+def customer_login_required(view_func):
+    """
+    Decorator that redirects anonymous visitors to the customer portal
+    login page. Mirrors login_required above but checks the separate
+    'customer_id' session key, so an admin session and a customer
+    session never get confused with each other.
+    Usage:
+        @customer_portal_bp.route("/some-page")
+        @customer_login_required
+        def some_view():
+            ...
+    """
+
+    @wraps(view_func)
+    def wrapped_view(*args, **kwargs):
+        if "customer_id" not in session:
+            flash("Please log in to continue.", "warning")
+            return redirect(url_for("customer_portal.login", next=request.path))
+        return view_func(*args, **kwargs)
+
+    return wrapped_view

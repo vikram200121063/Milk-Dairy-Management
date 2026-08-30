@@ -20,6 +20,11 @@
     <a href="{{ url_for('payments.invoice', payment_id=payment.payment_id) }}" class="btn btn-outline-primary">
         View Invoice
     </a>
+    <form method="POST" action="{{ url_for('payments.notify', payment_id=payment.payment_id) }}" class="d-inline">
+        <button type="submit" class="btn btn-outline-secondary" title="Email invoice to customer">
+            📩 Email Invoice
+        </button>
+    </form>
 </div>
 
 <div class="row">

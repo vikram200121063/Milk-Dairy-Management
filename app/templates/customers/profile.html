@@ -11,6 +11,11 @@
         {% else %}
             <span class="badge bg-secondary ms-2">Inactive</span>
         {% endif %}
+        {% if customer.password_hash %}
+            <span class="badge bg-info text-dark ms-1">Portal Account Active</span>
+        {% else %}
+            <span class="badge bg-light text-muted border ms-1">No Portal Account</span>
+        {% endif %}
     </div>
     <a href="{{ url_for('customers.edit_customer', customer_id=customer.customer_id) }}" class="btn btn-outline-primary">
         Edit Details
@@ -22,6 +27,9 @@
         <div class="row">
             <div class="col-md-6 mb-2">
                 <strong>Mobile Number:</strong> {{ customer.mobile_number }}
+            </div>
+            <div class="col-md-6 mb-2">
+                <strong>Email:</strong> {{ customer.email or '—' }}
             </div>
             <div class="col-md-6 mb-2">
                 <strong>Village / Location:</strong> {{ customer.village }}

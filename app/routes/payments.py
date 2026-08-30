@@ -12,7 +12,7 @@ from flask import (
 )
 
 from app.utils.decorators import login_required
-from app.services import payment_service, invoice_service
+from app.services import payment_service, invoice_service, notification_service
 
 payments_bp = Blueprint("payments", __name__, url_prefix="/payments")
 
@@ -190,6 +190,14 @@ def _load_invoice_context(payment_id):
     return payment, entries
 
 
+def _dairy_info():
+    return {
+        "name": current_app.config.get("DAIRY_NAME"),
+        "address": current_app.config.get("DAIRY_ADDRESS"),
+        "contact": current_app.config.get("DAIRY_CONTACT"),
+    }
+
+
 @payments_bp.route("/<payment_id>/invoice")
 @login_required
 def invoice(payment_id):
@@ -199,13 +207,14 @@ def invoice(payment_id):
         return redirect(url_for("payments.list_payments"))
     payment, entries = context
 
-    dairy_info = {
-        "name": current_app.config.get("DAIRY_NAME"),
-        "address": current_app.config.get("DAIRY_ADDRESS"),
-        "contact": current_app.config.get("DAIRY_CONTACT"),
-    }
-
-    return render_template("payments/invoice.html", payment=payment, entries=entries, dairy=dairy_info)
+    return render_template(
+        "payments/invoice.html",
+        payment=payment,
+        entries=entries,
+        dairy=_dairy_info(),
+        back_url=url_for("payments.detail", payment_id=payment_id),
+        pdf_url=url_for("payments.invoice_pdf", payment_id=payment_id),
+    )
 
 
 @payments_bp.route("/<payment_id>/invoice/pdf")
@@ -217,14 +226,90 @@ def invoice_pdf(payment_id):
         return redirect(url_for("payments.list_payments"))
     payment, entries = context
 
-    dairy_info = {
-        "name": current_app.config.get("DAIRY_NAME"),
-        "address": current_app.config.get("DAIRY_ADDRESS"),
-        "contact": current_app.config.get("DAIRY_CONTACT"),
-    }
-
-    pdf_buffer = invoice_service.generate_invoice_pdf(dairy_info, payment, entries)
+    pdf_buffer = invoice_service.generate_invoice_pdf(_dairy_info(), payment, entries)
     filename = f"invoice_{payment['invoice_number']}.pdf"
     return send_file(
         pdf_buffer, mimetype="application/pdf", as_attachment=True, download_name=filename
     )
+
+
+# ---------------------------------------------------------------------------
+# Email notifications
+# ---------------------------------------------------------------------------
+
+
+def _summarize_notify_result(result):
+    """Turns {"email": "sent"/error} into one short line."""
+    status = result.get("email")
+    if status == "sent":
+        return "Email sent."
+    if status:
+        return f"Email: {status}"
+    return "Nothing to send."
+
+
+@payments_bp.route("/<payment_id>/notify", methods=["POST"])
+@login_required
+def notify(payment_id):
+    """Sends the invoice email for one payment record, on demand."""
+    context = _load_invoice_context(payment_id)  # also assigns the invoice number
+    if not context:
+        flash("Payment record not found.", "danger")
+        return redirect(url_for("payments.list_payments"))
+    payment, _entries = context
+
+    result = notification_service.notify_invoice(current_app.db, payment, _dairy_info())
+    category = "success" if result.get("email") == "sent" else "warning"
+    flash(
+        f"{payment['customer_name']} ({payment['payment_period']}): "
+        f"{_summarize_notify_result(result)}",
+        category,
+    )
+    return redirect(request.referrer or url_for("payments.detail", payment_id=payment_id))
+
+
+@payments_bp.route("/notify-cycle", methods=["POST"])
+@login_required
+def notify_cycle():
+    """
+    Sends the invoice email to EVERY customer with a payment record in
+    the given cycle - the "Send All Invoices" button on the payments
+    list page. Safe to click again: already-sent invoices just get resent.
+    """
+    year = request.form.get("year", type=int)
+    month = request.form.get("month", type=int)
+    cycle = request.form.get("cycle", type=int)
+
+    if not year or not month or cycle not in (1, 2, 3):
+        flash("Invalid payment period.", "danger")
+        return redirect(url_for("payments.list_payments"))
+
+    period = payment_service.make_payment_period(year, month, cycle)
+    records = list(current_app.db.payments.find({"payment_period": period}))
+
+    if not records:
+        flash(f"No payment records found for {period}. Generate payments first.", "warning")
+        return redirect(url_for("payments.list_payments", year=year, month=month, cycle=cycle))
+
+    dairy_info = _dairy_info()
+    email_sent = email_failed = 0
+
+    for payment in records:
+        invoice_number, invoice_date = invoice_service.get_or_create_invoice_number(
+            current_app.db, payment
+        )
+        payment["invoice_number"] = invoice_number
+        payment["invoice_date"] = invoice_date
+
+        result = notification_service.notify_invoice(current_app.db, payment, dairy_info)
+        if result["email"] == "sent":
+            email_sent += 1
+        elif result["email"] not in (None, notification_service.NO_EMAIL_ON_FILE):
+            email_failed += 1
+
+    flash(
+        f"Notified {len(records)} customer(s) for {period} \u2013 "
+        f"Email: {email_sent} sent / {email_failed} failed.",
+        "info",
+    )
+    return redirect(url_for("payments.list_payments", year=year, month=month, cycle=cycle))

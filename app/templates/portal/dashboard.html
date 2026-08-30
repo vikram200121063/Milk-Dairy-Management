@@ -1,0 +1,110 @@
+{% extends "base.html" %}
+{% block title %}My Dashboard - OM Dairy{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-start mb-4">
+    <div>
+        <h2 class="mb-0">Welcome, {{ customer.name }}</h2>
+        <span class="text-muted"><code>{{ customer.customer_id }}</code> &middot; {{ customer.village }}</span>
+    </div>
+    {% if customer.status == 'Active' %}
+        <span class="badge bg-success">Active</span>
+    {% else %}
+        <span class="badge bg-secondary">Inactive</span>
+    {% endif %}
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-6 col-md-3">
+        <div class="card shadow-sm stat-card text-center p-3 h-100">
+            <div class="text-muted small">This Cycle Quantity</div>
+            <div class="fs-3 fw-bold">{{ "%.1f"|format(current_cycle_stats.quantity) }} L</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card shadow-sm stat-card accent-success text-center p-3 h-100">
+            <div class="text-muted small">This Cycle Amount</div>
+            <div class="fs-3 fw-bold">₹{{ "%.2f"|format(current_cycle_stats.amount) }}</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card shadow-sm stat-card accent-marigold text-center p-3 h-100">
+            <div class="text-muted small">This Cycle Entries</div>
+            <div class="fs-3 fw-bold">{{ current_cycle_stats.count }}</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card shadow-sm stat-card accent-danger text-center p-3 h-100">
+            <div class="text-muted small">Pending Balance</div>
+            <div class="fs-3 fw-bold">₹{{ "%.2f"|format(pending_total) }}</div>
+        </div>
+    </div>
+</div>
+
+<p class="text-muted small mb-4">Current cycle: {{ current_period }}</p>
+
+<div class="row g-3">
+    <div class="col-md-6">
+        <div class="card shadow-sm h-100">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                Recent Milk Entries
+                <a href="{{ url_for('customer_portal.milk_entries') }}" class="small">View all →</a>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-sm mb-0">
+                    <thead class="table-light">
+                        <tr><th>Date</th><th>Shift</th><th>Qty</th><th>Amount</th></tr>
+                    </thead>
+                    <tbody>
+                        {% for e in recent_entries %}
+                        <tr>
+                            <td>{{ e.date.strftime('%d %b') }}</td>
+                            <td>{{ e.shift }}</td>
+                            <td>{{ "%.2f"|format(e.quantity) }} L</td>
+                            <td>₹{{ "%.2f"|format(e.total_amount) }}</td>
+                        </tr>
+                        {% else %}
+                        <tr><td colspan="4" class="text-center text-muted py-3">No milk entries yet.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-6">
+        <div class="card shadow-sm h-100">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                Recent Payments
+                <a href="{{ url_for('customer_portal.payments') }}" class="small">View all →</a>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-sm mb-0">
+                    <thead class="table-light">
+                        <tr><th>Period</th><th>Final Payable</th><th>Status</th></tr>
+                    </thead>
+                    <tbody>
+                        {% for p in recent_payments %}
+                        <tr>
+                            <td>{{ p.payment_period }}</td>
+                            <td>₹{{ "%.2f"|format(p.final_payable_amount) }}</td>
+                            <td>
+                                {% if p.payment_status == 'Paid' %}
+                                    <span class="badge bg-success">Paid</span>
+                                {% elif p.payment_status == 'Partially Paid' %}
+                                    <span class="badge bg-warning text-dark">Partial</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">Pending</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr><td colspan="3" class="text-center text-muted py-3">No payment records yet.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

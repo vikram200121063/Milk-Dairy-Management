@@ -34,6 +34,20 @@
                     </div>
 
                     <div class="mb-3">
+                        <label class="form-label">Email <span class="text-muted small">(optional)</span></label>
+                        <input
+                            type="email"
+                            name="email"
+                            class="form-control"
+                            value="{{ customer.email or '' }}"
+                            placeholder="customer@example.com"
+                        >
+                        <div class="form-text">
+                            Used to email daily milk records and 10-day invoices. Leave blank to skip email notifications.
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
                         <label class="form-label">Village / Location</label>
                         <input
                             type="text"

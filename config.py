@@ -33,6 +33,17 @@ class Config:
     DAIRY_ADDRESS = os.environ.get("DAIRY_ADDRESS", "Village Road, Your Town")
     DAIRY_CONTACT = os.environ.get("DAIRY_CONTACT", "+91 90000 00000")
 
+    # --- SMTP (Email) ---
+    # Works with Gmail (use an App Password, not your login password) or
+    # any other SMTP provider.
+    SMTP_HOST = os.environ.get("SMTP_HOST")
+    SMTP_PORT = os.environ.get("SMTP_PORT", "587")
+    SMTP_USERNAME = os.environ.get("SMTP_USERNAME")
+    SMTP_PASSWORD = os.environ.get("SMTP_PASSWORD")
+    SMTP_USE_TLS = os.environ.get("SMTP_USE_TLS", "True")
+    SMTP_FROM_EMAIL = os.environ.get("SMTP_FROM_EMAIL")
+    SMTP_FROM_NAME = os.environ.get("SMTP_FROM_NAME", DAIRY_NAME)
+
     @staticmethod
     def validate():
         """

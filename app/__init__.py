@@ -65,6 +65,11 @@ def create_app():
     db.payments.create_index("payment_period")
     db.payments.create_index("payment_status")
 
+    # Audit log of every SMS/email notification attempt (see
+    # app/services/notification_service.py).
+    db.notifications.create_index([("sent_at", -1)])
+    db.notifications.create_index("customer_id")
+
     # --- Session cookie security ---
     # HTTPONLY: JavaScript can't read the cookie (mitigates XSS cookie theft)
     # SAMESITE: cookie isn't sent on cross-site requests (mitigates CSRF)
@@ -80,6 +85,8 @@ def create_app():
     from app.routes.milk_entries import milk_entries_bp
     from app.routes.rate_config import rate_config_bp
     from app.routes.payments import payments_bp
+    from app.routes.customer_portal import customer_portal_bp
+    from app.routes.notifications import notifications_bp
 
     app.register_blueprint(auth_bp)
     app.register_blueprint(dashboard_bp)
@@ -87,12 +94,17 @@ def create_app():
     app.register_blueprint(milk_entries_bp)
     app.register_blueprint(rate_config_bp)
     app.register_blueprint(payments_bp)
+    app.register_blueprint(customer_portal_bp)
+    app.register_blueprint(notifications_bp)
 
-    # --- Root route: send visitors to the dashboard (if logged in) or login page ---
+    # --- Root route: send visitors to the right place based on who (if
+    # anyone) is logged in - admin staff, a customer, or a fresh visitor ---
     @app.route("/")
     def index():
         if "user_id" in session:
             return redirect(url_for("dashboard.index"))
+        if "customer_id" in session:
+            return redirect(url_for("customer_portal.dashboard"))
         return redirect(url_for("auth.login"))
 
     # --- Health check route (moved from "/" - useful for deployment platforms) ---

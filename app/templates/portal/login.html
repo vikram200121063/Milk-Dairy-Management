@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Login - OM Dairy{% endblock %}
+{% block title %}Customer Login - OM Dairy{% endblock %}
 
 {% block content %}
 <div class="login-shell">
@@ -8,16 +8,19 @@
             <div class="card-body p-4 pt-5">
                 <img src="{{ url_for('static', filename='img/logo-mark.svg') }}" alt="OM Dairy" class="login-logo">
                 <div class="login-title">OM Dairy</div>
-                <div class="login-subtitle">Milk collection &amp; payment management</div>
+                <div class="login-subtitle">Customer portal &ndash; your milk records &amp; invoices</div>
 
-                <form method="POST" action="{{ url_for('auth.login') }}">
+                <form method="POST" action="{{ url_for('customer_portal.login') }}">
                     <div class="mb-3">
-                        <label for="username" class="form-label">Username</label>
+                        <label for="mobile_number" class="form-label">Mobile Number</label>
                         <input
-                            type="text"
+                            type="tel"
                             class="form-control"
-                            id="username"
-                            name="username"
+                            id="mobile_number"
+                            name="mobile_number"
+                            inputmode="numeric"
+                            pattern="[6-9][0-9]{9}"
+                            maxlength="10"
                             required
                             autofocus
                         >
@@ -36,9 +39,12 @@
                 </form>
 
                 <div class="text-center mt-4 pt-3 border-top">
-                    <span class="text-muted small">Are you a dairy customer?</span>
-                    <a href="{{ url_for('customer_portal.login') }}" class="small d-block mt-1">
-                        Log in to your customer account →
+                    <span class="text-muted small">New customer?</span>
+                    <a href="{{ url_for('customer_portal.register') }}" class="small d-block mt-1">
+                        Create your account →
+                    </a>
+                    <a href="{{ url_for('auth.login') }}" class="small d-block mt-2 text-muted">
+                        Dairy staff login
                     </a>
                 </div>
             </div>

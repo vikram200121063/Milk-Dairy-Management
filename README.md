@@ -12,8 +12,52 @@ A Flask + MongoDB web application for a milk dairy to manage customers, record d
 - Daily milk collection entry with duplicate prevention (one entry per customer/date/shift)
 - Manual or automatic (Fat%/SNF%-based) rate calculation
 - 10-day payment cycles with pending-balance carry-forward
-- Printable and PDF invoices
+- Branded, printable and PDF invoices with your dairy's logo, a colored header,
+  and a status badge (Paid / Partially Paid / Pending)
 - Dashboard with live statistics
+- **Customer self-service portal** (`/portal`): customers create their own login using
+  the mobile number already on file, then view their daily milk records, current-cycle
+  totals, pending balance, and past payment history/invoices (view, print, download PDF)
+- **Email notifications**: email a customer their milk-collection record for a
+  single entry, or email every entry for a given date + shift in one click (defaults to
+  today and a shift guessed from the current time). 10-day invoices can be emailed
+  one at a time or for a whole cycle at once, with the PDF invoice attached. A
+  Notification Log page shows exactly what was sent, to whom, and whether it succeeded.
+
+### Customer Portal Notes
+
+- A customer must already exist as a record (added by the admin) before they can
+  register a portal login — registration "claims" that record via mobile number match,
+  it does not create a new customer.
+- Customer sessions (`session['customer_id']`) are completely separate from admin
+  sessions (`session['user_id']`), so the two logins never interfere with each other.
+- Customers can only ever see their own milk entries and payments — every portal
+  route filters by the logged-in customer's `customer_id` and every invoice route
+  double-checks ownership before rendering.
+
+### Invoice Branding
+
+- Both the on-screen invoice and the downloadable PDF use the dairy's logo at
+  `app/static/img/logo-mark.svg`. To use your own logo, just replace that file
+  (SVG works best; PNG/JPG also work - drop a `logo.png` or `logo-mark.png` in
+  the same folder and the PDF will pick it up automatically, see
+  `_find_logo_path()` in `app/services/invoice_service.py`).
+- If no logo file is found, invoices still generate fine - the header just
+  falls back to text-only.
+
+### Email Notification Notes
+
+- Notifications go out over plain SMTP - works with Gmail (use an App Password) or
+  any other provider. Set `SMTP_HOST`, `SMTP_USERNAME`, `SMTP_PASSWORD` in `.env`.
+- Customers need an `email` on their profile (optional field on the customer form)
+  to receive anything; customers without one are silently skipped and noted as such
+  in the Notification Log rather than treated as an error.
+- A free Gmail account tops out around 100 emails/day sent via SMTP - fine for a
+  single dairy's daily volume, but if you outgrow it, point the same SMTP settings
+  at a transactional email service (SendGrid, Amazon SES, Mailgun, etc.) instead.
+- Every send attempt (success or failure) is logged to the `notifications`
+  collection and viewable at **Notifications** in the admin nav, so nothing is a
+  silent no-op.
 
 ## Tech Stack
 

@@ -7,6 +7,33 @@
     <a href="{{ url_for('milk_entries.add_entry') }}" class="btn btn-primary">+ Add Entry</a>
 </div>
 
+<div class="card shadow-sm mb-3 border-0" style="background: var(--color-cream-alt);">
+    <div class="card-body">
+        <h6 class="mb-2">📩 Send Milk-Record Email</h6>
+        <form method="POST" action="{{ url_for('milk_entries.notify_bulk') }}" class="row g-2 align-items-end">
+            <div class="col-sm-4 col-md-3">
+                <label class="form-label small mb-1">Date</label>
+                <input type="date" name="notify_date" class="form-control" value="{{ default_notify_date }}" required>
+            </div>
+            <div class="col-sm-4 col-md-3">
+                <label class="form-label small mb-1">Shift</label>
+                <select name="notify_shift" class="form-select" required>
+                    <option value="Morning" {% if default_notify_shift == 'Morning' %}selected{% endif %}>Morning</option>
+                    <option value="Evening" {% if default_notify_shift == 'Evening' %}selected{% endif %}>Evening</option>
+                </select>
+            </div>
+            <div class="col-sm-4 col-md-3">
+                <button type="submit" class="btn btn-outline-primary w-100">Send All for This Date &amp; Shift</button>
+            </div>
+        </form>
+        <div class="form-text mt-1">
+            Emails every customer with an entry on the selected date/shift (customers without an
+            email on file are skipped). Safe to click again - already-notified customers just get
+            notified again.
+        </div>
+    </div>
+</div>
+
 <form method="GET" class="row g-2 mb-3">
     <div class="col-sm-6 col-md-2">
         <label class="form-label small mb-1">From</label>
@@ -103,6 +130,11 @@
                             href="{{ url_for('milk_entries.edit_entry', entry_id=e._id) }}"
                             class="btn btn-sm btn-outline-primary"
                         >Edit</a>
+                        <form method="POST" action="{{ url_for('milk_entries.notify_entry', entry_id=e._id) }}" class="d-inline">
+                            <button type="submit" class="btn btn-sm btn-outline-secondary" title="Send email for this entry">
+                                📩 Email
+                            </button>
+                        </form>
                     </td>
                 </tr>
                 {% else %}
