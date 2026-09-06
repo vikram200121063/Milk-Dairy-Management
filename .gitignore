@@ -22,3 +22,8 @@ Thumbs.db
 
 # Generated invoice PDFs (optional - remove if you want to track them)
 app/static/invoices/*.pdf
+
+# Uploaded profile photos - these are user data, and Render's filesystem is
+# ephemeral anyway (see DEPLOYMENT.md), so they should not be committed.
+app/static/uploads/avatars/*
+!app/static/uploads/avatars/.gitkeep
