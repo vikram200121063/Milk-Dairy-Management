@@ -12,6 +12,7 @@ from flask import (
 
 from app.utils.decorators import login_required
 from app.utils.id_generator import get_next_sequence
+from app.services import ledger_service
 
 expenses_bp = Blueprint("expenses", __name__, url_prefix="/expenses")
 
@@ -143,17 +144,18 @@ def add_expense():
         seq = get_next_sequence(current_app.db, "expense_id")
         expense_id = f"EXP{seq:05d}"
 
-        current_app.db.expenses.insert_one(
-            {
-                "expense_id": expense_id,
-                "entry_type": data["entry_type"],
-                "category": data["category"],
-                "description": data["description"],
-                "amount": data["amount"],
-                "date": data["date"],
-                "created_at": datetime.now(timezone.utc),
-            }
-        )
+        expense_doc = {
+            "expense_id": expense_id,
+            "entry_type": data["entry_type"],
+            "category": data["category"],
+            "description": data["description"],
+            "amount": data["amount"],
+            "date": data["date"],
+            "created_at": datetime.now(timezone.utc),
+        }
+        current_app.db.expenses.insert_one(expense_doc)
+        # Common Accounting module: auto-post the matching Dr/Cr pair.
+        ledger_service.post_expense_entry(current_app.db, expense_doc)
         label = "Income entry" if data["entry_type"] == "Income" else "Expense"
         flash(f"{label} {expense_id} recorded \u2013 \u20b9{data['amount']:.2f}", "success")
         return redirect(url_for("expenses.list_expenses"))
@@ -187,19 +189,17 @@ def edit_expense(expense_id):
                 categories=EXPENSE_CATEGORIES, today=date_cls.today().isoformat(),
             )
 
-        current_app.db.expenses.update_one(
-            {"expense_id": expense_id},
-            {
-                "$set": {
-                    "entry_type": data["entry_type"],
-                    "category": data["category"],
-                    "description": data["description"],
-                    "amount": data["amount"],
-                    "date": data["date"],
-                    "updated_at": datetime.now(timezone.utc),
-                }
-            },
-        )
+        updated_fields = {
+            "entry_type": data["entry_type"],
+            "category": data["category"],
+            "description": data["description"],
+            "amount": data["amount"],
+            "date": data["date"],
+            "updated_at": datetime.now(timezone.utc),
+        }
+        current_app.db.expenses.update_one({"expense_id": expense_id}, {"$set": updated_fields})
+        # Common Accounting module: re-post in case the type/amount/date changed.
+        ledger_service.post_expense_entry(current_app.db, {"expense_id": expense_id, **updated_fields})
         flash("Entry updated successfully.", "success")
         return redirect(url_for("expenses.list_expenses"))
 
@@ -215,5 +215,7 @@ def edit_expense(expense_id):
 @login_required
 def delete_expense(expense_id):
     current_app.db.expenses.delete_one({"expense_id": expense_id})
+    # Common Accounting module: remove the corresponding ledger entries too.
+    ledger_service.void_expense_entry(current_app.db, expense_id)
     flash("Entry deleted.", "info")
     return redirect(request.referrer or url_for("expenses.list_expenses"))

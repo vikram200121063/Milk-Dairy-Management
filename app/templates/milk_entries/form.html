@@ -2,6 +2,8 @@
 {% block title %}{{ 'Edit' if mode == 'edit' else 'Add' }} Milk Entry - OM Dairy{% endblock %}
 
 {% block content %}
+{% set active = 'milk_entries' %}
+{% include "partials/customer_nav.html" %}
 <div class="row justify-content-center">
     <div class="col-md-8">
         <div class="card shadow-sm">

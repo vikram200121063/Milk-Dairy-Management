@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+{% block title %}Revenue Report - OM Dairy{% endblock %}
+
+{% block content %}
+{% set active = 'revenue' %}
+<h2 class="mb-3">Revenue</h2>
+{% include "partials/accounting_nav.html" %}
+{% include "partials/accounting_range_form.html" %}
+
+<div class="row g-3 mb-3">
+    <div class="col-6 col-md-4">
+        <div class="card shadow-sm stat-card accent-marigold text-center p-3 h-100">
+            <div class="text-muted small">Milk Sales Revenue</div>
+            <div class="fs-4 fw-bold">&#8377;{{ "%.2f"|format(data.milk_sales_revenue) }}</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-4">
+        <div class="card shadow-sm stat-card accent-success text-center p-3 h-100">
+            <div class="text-muted small">Interest Income</div>
+            <div class="fs-4 fw-bold">&#8377;{{ "%.2f"|format(data.interest_income) }}</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-4">
+        <div class="card shadow-sm stat-card accent-success text-center p-3 h-100">
+            <div class="text-muted small">Total Revenue</div>
+            <div class="fs-4 fw-bold">&#8377;{{ "%.2f"|format(data.total_revenue) }}</div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-3">
+    <div class="col-md-6">
+        <div class="card shadow-sm mb-4 h-100">
+            <div class="card-header">Revenue by Buyer</div>
+            <div class="table-responsive">
+                <table class="table table-sm mb-0">
+                    <thead class="table-light"><tr><th>Buyer</th><th class="text-end">Revenue</th></tr></thead>
+                    <tbody>
+                        {% for row in data.by_buyer %}
+                        <tr>
+                            <td><a href="{{ url_for('accounting.receivable_detail', buyer_id=row.buyer_id) }}">{{ row.buyer_name }}</a></td>
+                            <td class="text-end">&#8377;{{ "%.2f"|format(row.total) }}</td>
+                        </tr>
+                        {% else %}
+                        <tr><td colspan="2" class="text-center text-muted py-3">No sales in this range.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card shadow-sm mb-4 h-100">
+            <div class="card-header">Revenue by Month</div>
+            <div class="table-responsive">
+                <table class="table table-sm mb-0">
+                    <thead class="table-light"><tr><th>Month</th><th class="text-end">Revenue</th></tr></thead>
+                    <tbody>
+                        {% for row in data.by_month %}
+                        <tr>
+                            <td>{{ row.month }}</td>
+                            <td class="text-end">&#8377;{{ "%.2f"|format(row.total) }}</td>
+                        </tr>
+                        {% else %}
+                        <tr><td colspan="2" class="text-center text-muted py-3">No sales in this range.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -15,7 +15,7 @@ from pymongo.errors import DuplicateKeyError
 
 from app.utils.decorators import login_required
 from app.services.rate_service import calculate_rate
-from app.services import notification_service
+from app.services import notification_service, ledger_service
 
 milk_entries_bp = Blueprint("milk_entries", __name__, url_prefix="/milk-entries")
 
@@ -235,24 +235,25 @@ def add_entry():
 
         total_amount = round(data["quantity"] * data["rate_per_litre"], 2)
 
+        entry_doc = {
+            "customer_id": data["customer_id"],
+            "customer_name": customer["name"],
+            "date": data["date"],
+            "shift": data["shift"],
+            "milk_type": data["milk_type"],
+            "quantity": data["quantity"],
+            "fat_percentage": data["fat_percentage"],
+            "snf_percentage": data["snf_percentage"],
+            "rate_per_litre": data["rate_per_litre"],
+            "rate_mode": data["rate_mode"],
+            "total_amount": total_amount,
+            "notes": data["notes"],
+            "created_at": datetime.now(timezone.utc),
+        }
         try:
-            current_app.db.milk_entries.insert_one(
-                {
-                    "customer_id": data["customer_id"],
-                    "customer_name": customer["name"],
-                    "date": data["date"],
-                    "shift": data["shift"],
-                    "milk_type": data["milk_type"],
-                    "quantity": data["quantity"],
-                    "fat_percentage": data["fat_percentage"],
-                    "snf_percentage": data["snf_percentage"],
-                    "rate_per_litre": data["rate_per_litre"],
-                    "rate_mode": data["rate_mode"],
-                    "total_amount": total_amount,
-                    "notes": data["notes"],
-                    "created_at": datetime.now(timezone.utc),
-                }
-            )
+            current_app.db.milk_entries.insert_one(entry_doc)
+            # Common Accounting module: auto-post Dr Milk Purchase Expense / Cr Accounts Payable.
+            ledger_service.post_milk_purchase(current_app.db, entry_doc, str(entry_doc["_id"]))
         except DuplicateKeyError:
             # Safety net: the unique index is the real source of truth in
             # case two requests raced past the check above at the same instant.
@@ -341,26 +342,24 @@ def edit_entry(entry_id):
 
         total_amount = round(data["quantity"] * data["rate_per_litre"], 2)
 
-        current_app.db.milk_entries.update_one(
-            {"_id": oid},
-            {
-                "$set": {
-                    "customer_id": data["customer_id"],
-                    "customer_name": customer["name"],
-                    "date": data["date"],
-                    "shift": data["shift"],
-                    "milk_type": data["milk_type"],
-                    "quantity": data["quantity"],
-                    "fat_percentage": data["fat_percentage"],
-                    "snf_percentage": data["snf_percentage"],
-                    "rate_per_litre": data["rate_per_litre"],
-                    "rate_mode": data["rate_mode"],
-                    "total_amount": total_amount,
-                    "notes": data["notes"],
-                    "updated_at": datetime.now(timezone.utc),
-                }
-            },
-        )
+        updated_fields = {
+            "customer_id": data["customer_id"],
+            "customer_name": customer["name"],
+            "date": data["date"],
+            "shift": data["shift"],
+            "milk_type": data["milk_type"],
+            "quantity": data["quantity"],
+            "fat_percentage": data["fat_percentage"],
+            "snf_percentage": data["snf_percentage"],
+            "rate_per_litre": data["rate_per_litre"],
+            "rate_mode": data["rate_mode"],
+            "total_amount": total_amount,
+            "notes": data["notes"],
+            "updated_at": datetime.now(timezone.utc),
+        }
+        current_app.db.milk_entries.update_one({"_id": oid}, {"$set": updated_fields})
+        # Common Accounting module: re-post the Milk Purchase entry with the edited amount/customer.
+        ledger_service.post_milk_purchase(current_app.db, updated_fields, str(oid))
         flash("Milk entry updated successfully.", "success")
         return redirect(url_for("milk_entries.list_entries"))
 

@@ -13,6 +13,7 @@ from flask import (
 
 from app.utils.decorators import login_required
 from app.utils.id_generator import get_next_sequence
+from app.services import ledger_service
 
 customers_bp = Blueprint("customers", __name__, url_prefix="/customers")
 
@@ -174,8 +175,13 @@ def profile(customer_id):
         flash("Customer not found.", "danger")
         return redirect(url_for("customers.list_customers"))
 
-    # Milk history, totals, and payment summary will be added here in Phase 4.
-    return render_template("customers/profile.html", customer=customer)
+    ledger = ledger_service.get_entity_ledger(current_app.db, "customer", customer_id)
+    return render_template(
+        "customers/profile.html",
+        customer=customer,
+        ledger=ledger,
+        detail_url=url_for("accounting.payable_detail", customer_id=customer_id),
+    )
 
 
 @customers_bp.route("/deactivate/<customer_id>", methods=["POST"])

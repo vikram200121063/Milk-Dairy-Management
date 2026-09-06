@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% block title %}Profit & Loss - OM Dairy{% endblock %}
+
+{% block content %}
+{% set active = 'pnl' %}
+<h2 class="mb-3">Profit &amp; Loss Statement</h2>
+{% include "partials/accounting_nav.html" %}
+{% include "partials/accounting_range_form.html" %}
+
+<div class="card shadow-sm mb-4">
+    <div class="card-body">
+        <table class="table table-borderless mb-0">
+            <tbody>
+                <tr>
+                    <td class="fw-semibold">Milk Sales Revenue (Buyers)</td>
+                    <td class="text-end">&#8377;{{ "%.2f"|format(data.sales_revenue) }}</td>
+                </tr>
+                <tr>
+                    <td class="ps-4 text-muted">Interest Income (Late Fees)</td>
+                    <td class="text-end text-muted">&#8377;{{ "%.2f"|format(data.interest_income) }}</td>
+                </tr>
+                <tr>
+                    <td class="ps-4 text-muted">Other Income</td>
+                    <td class="text-end text-muted">&#8377;{{ "%.2f"|format(data.other_income) }}</td>
+                </tr>
+                <tr class="border-top">
+                    <td class="fw-bold">Total Revenue</td>
+                    <td class="text-end fw-bold">&#8377;{{ "%.2f"|format(data.total_revenue) }}</td>
+                </tr>
+                <tr>
+                    <td class="fw-semibold pt-3">Less: Milk Purchase Cost (Customers)</td>
+                    <td class="text-end pt-3">&#8377;{{ "%.2f"|format(data.milk_purchase_cost) }}</td>
+                </tr>
+                <tr class="border-top">
+                    <td class="fw-bold">Gross Profit</td>
+                    <td class="text-end fw-bold {{ 'text-danger' if data.gross_profit < 0 else '' }}">&#8377;{{ "%.2f"|format(data.gross_profit) }}</td>
+                </tr>
+                <tr>
+                    <td class="fw-semibold pt-3">Less: Other Business Expenses</td>
+                    <td class="text-end pt-3">&#8377;{{ "%.2f"|format(data.other_expenses) }}</td>
+                </tr>
+                {% for row in data.expense_by_category %}
+                <tr>
+                    <td class="ps-4 text-muted small">{{ row.category }}</td>
+                    <td class="text-end text-muted small">&#8377;{{ "%.2f"|format(row.total) }}</td>
+                </tr>
+                {% endfor %}
+                <tr class="border-top border-2">
+                    <td class="fw-bold fs-5">Net Profit / Loss</td>
+                    <td class="text-end fw-bold fs-5 {{ 'text-success' if data.net_profit >= 0 else 'text-danger' }}">
+                        &#8377;{{ "%.2f"|format(data.net_profit) }}
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="alert alert-light border small">
+    <strong>Formula:</strong> Net Profit = Total Revenue (Milk Sales + Interest Income + Other Income)
+    &minus; Milk Purchase Cost &minus; Other Business Expenses. Figures are accrual-basis: a sale or a
+    milk purchase counts the moment it's recorded, not when cash actually moves - see the Cash &amp; Bank
+    page for the cash-basis view.
+</div>
+{% endblock %}

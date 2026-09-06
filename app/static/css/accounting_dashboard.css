@@ -1,0 +1,353 @@
+/* ==========================================================================
+   OM Dairy — Accounting Dashboard
+   A deliberately different visual world from the main (light, glassy)
+   dashboard: a dark "financial command center". Depth here is REAL 3D -
+   CSS perspective, preserve-3d, extruded bar faces, and cursor-driven
+   tilt - not just drop shadows. Scoped to body.acct-page so nothing else
+   in the app is affected.
+   ========================================================================== */
+
+body.acct-page {
+    background:
+        radial-gradient(1200px 600px at 12% -8%, rgba(99, 102, 241, 0.28), transparent 60%),
+        radial-gradient(900px 500px at 92% 4%, rgba(34, 211, 238, 0.18), transparent 58%),
+        radial-gradient(700px 500px at 50% 108%, rgba(167, 139, 250, 0.16), transparent 60%),
+        #080B18;
+    color: #E8EBFA;
+    min-height: 100vh;
+}
+
+.acct {
+    --a-surface: rgba(255, 255, 255, 0.055);
+    --a-surface-2: rgba(255, 255, 255, 0.085);
+    --a-border: rgba(255, 255, 255, 0.11);
+    --a-text: #E8EBFA;
+    --a-muted: #8E97BE;
+    --a-emerald: #34D399;
+    --a-rose: #FB7185;
+    --a-amber: #FBBF24;
+    --a-cyan: #22D3EE;
+    --a-violet: #A78BFA;
+    --a-indigo: #6366F1;
+    color: var(--a-text);
+    font-family: "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
+    perspective: 1600px;
+}
+
+.acct-display { font-family: "Sora", "Inter", sans-serif; letter-spacing: -0.02em; }
+.acct-muted { color: var(--a-muted); }
+
+/* ---- Dark surface, with a 3D bevel: bright inset top edge, dark inset
+   bottom edge, and a wide ambient drop shadow underneath. ---- */
+.acct-panel {
+    background: var(--a-surface);
+    border: 1px solid var(--a-border);
+    border-radius: 22px;
+    backdrop-filter: blur(22px);
+    -webkit-backdrop-filter: blur(22px);
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.16),
+        inset 0 -1px 0 rgba(0, 0, 0, 0.35),
+        0 26px 50px -24px rgba(0, 0, 0, 0.85);
+}
+
+/* ---- Header row ---- */
+.acct-head {
+    display: flex; align-items: flex-end; justify-content: space-between;
+    flex-wrap: wrap; gap: 1rem; margin-bottom: 1.5rem;
+}
+.acct-eyebrow {
+    display: inline-flex; align-items: center; gap: 0.45rem;
+    font-size: 0.76rem; font-weight: 600; letter-spacing: 0.03em;
+    color: var(--a-cyan);
+    background: rgba(34, 211, 238, 0.10);
+    border: 1px solid rgba(34, 211, 238, 0.28);
+    padding: 0.3rem 0.75rem; border-radius: 999px; margin-bottom: 0.75rem;
+}
+.acct-pulse {
+    width: 6px; height: 6px; border-radius: 50%; background: var(--a-cyan);
+    animation: acct-pulse 2.2s infinite;
+}
+.acct-head h1 { font-size: 2rem; font-weight: 700; margin: 0; color: #fff; }
+.acct-head p { color: var(--a-muted); margin: 0.3rem 0 0; font-size: 0.94rem; }
+
+/* ---- Dark range picker ---- */
+.acct-range { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
+.acct-range select, .acct-range input {
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid var(--a-border);
+    color: var(--a-text);
+    border-radius: 11px;
+    padding: 0.5rem 0.8rem;
+    font-size: 0.87rem;
+    font-weight: 500;
+}
+.acct-range select option { background: #131A32; color: var(--a-text); }
+.acct-range select:focus, .acct-range input:focus {
+    outline: none; border-color: var(--a-indigo);
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.22);
+}
+.acct-range input[type="date"] { color-scheme: dark; }
+.acct-range button {
+    background: linear-gradient(120deg, var(--a-indigo), var(--a-violet));
+    border: none; color: #fff; font-weight: 600; font-size: 0.87rem;
+    padding: 0.55rem 1.15rem; border-radius: 11px;
+    box-shadow: 0 10px 22px -10px rgba(99, 102, 241, 0.9);
+    transition: filter 0.15s ease, transform 0.12s ease;
+}
+.acct-range button:hover { filter: brightness(1.1); }
+.acct-range button:active { transform: translateY(1px); }
+
+/* ---- Section nav, restyled for the dark canvas ---- */
+body.acct-page .section-nav {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: var(--a-border);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12);
+    backdrop-filter: blur(18px);
+}
+body.acct-page .section-nav a { color: #A9B2D6; }
+body.acct-page .section-nav a:hover { background: rgba(255, 255, 255, 0.08); color: #fff; }
+body.acct-page .section-nav a.active {
+    background: linear-gradient(120deg, var(--a-indigo), var(--a-violet));
+    color: #fff;
+    box-shadow: 0 8px 20px -10px rgba(99, 102, 241, 0.95);
+}
+
+/* ==========================================================================
+   The centerpiece: profit gauge + money flow, side by side
+   ========================================================================== */
+.acct-stage {
+    display: grid;
+    grid-template-columns: 340px 1fr;
+    gap: 1.15rem;
+    margin-bottom: 1.15rem;
+}
+@media (max-width: 1100px) { .acct-stage { grid-template-columns: 1fr; } }
+
+/* ---- Profit gauge ---- */
+.acct-gauge-card {
+    padding: 1.6rem 1.4rem;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+}
+.acct-gauge-card::after {
+    content: "";
+    position: absolute; top: 0; right: 0; bottom: 0; left: 0;
+    background: radial-gradient(320px 200px at 50% 0%, rgba(52, 211, 153, 0.14), transparent 70%);
+    pointer-events: none;
+}
+.acct-gauge-wrap { position: relative; width: 220px; height: 220px; margin: 0.2rem auto 0.4rem; }
+.acct-gauge-wrap svg { width: 100%; height: 100%; transform: rotate(-90deg); }
+.acct-gauge-track { stroke: rgba(255, 255, 255, 0.07); }
+.acct-gauge-arc {
+    stroke-linecap: round;
+    filter: drop-shadow(0 0 10px currentColor);
+    transition: stroke-dashoffset 1.2s cubic-bezier(.22, 1, .36, 1);
+}
+.acct-gauge-center {
+    position: absolute; top: 0; right: 0; bottom: 0; left: 0;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+}
+.acct-gauge-label { font-size: 0.76rem; color: var(--a-muted); letter-spacing: 0.04em; }
+.acct-gauge-value { font-size: 1.85rem; font-weight: 700; line-height: 1.15; color: #fff; }
+.acct-gauge-margin { font-size: 0.82rem; font-weight: 600; margin-top: 0.15rem; }
+
+/* ---- Money flow diagram ---- */
+.acct-flow-card { padding: 1.4rem 1.5rem 1rem; display: flex; flex-direction: column; }
+.acct-card-title { font-family: "Sora", sans-serif; font-size: 1rem; font-weight: 700; color: #fff; margin: 0; }
+.acct-card-sub { font-size: 0.78rem; color: var(--a-muted); margin-top: 0.15rem; }
+.acct-flow-canvas { flex: 1; min-height: 250px; margin-top: 0.6rem; }
+.acct-flow-canvas svg { width: 100%; height: 100%; overflow: visible; }
+.acct-flow-band { opacity: 0; animation: acct-fade-in 0.9s ease forwards; }
+.acct-flow-label { font-size: 11px; font-weight: 600; fill: #fff; }
+.acct-flow-amount { font-size: 12px; font-weight: 700; fill: #fff; }
+.acct-flow-sub { font-size: 10px; fill: #8E97BE; }
+.acct-flow-empty {
+    display: flex; align-items: center; justify-content: center;
+    height: 100%; color: var(--a-muted); font-size: 0.88rem;
+}
+
+/* ==========================================================================
+   3D tilt stat tiles
+   ========================================================================== */
+.acct-tiles {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1.15rem;
+    margin-bottom: 1.15rem;
+}
+@media (max-width: 1100px) { .acct-tiles { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 560px) { .acct-tiles { grid-template-columns: 1fr; } }
+
+.acct-tile {
+    position: relative;
+    padding: 1.3rem 1.35rem;
+    transform-style: preserve-3d;
+    transition: transform 0.35s cubic-bezier(.22, 1, .36, 1), box-shadow 0.35s ease;
+    will-change: transform;
+    text-decoration: none;
+    display: block;
+    color: inherit;
+    overflow: hidden;
+}
+.acct-tile:hover { color: inherit; }
+/* The specular highlight that tracks the cursor - what sells the 3D. */
+.acct-tile::before {
+    content: "";
+    position: absolute; top: 0; right: 0; bottom: 0; left: 0;
+    border-radius: inherit;
+    background: radial-gradient(360px circle at var(--mx, 50%) var(--my, 0%), rgba(255, 255, 255, 0.13), transparent 42%);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    pointer-events: none;
+}
+.acct-tile:hover::before { opacity: 1; }
+
+/* Children lifted onto their own Z planes, so tilting produces real parallax. */
+.acct-tile-icon {
+    width: 44px; height: 44px; border-radius: 13px;
+    display: flex; align-items: center; justify-content: center;
+    margin-bottom: 0.9rem;
+    transform: translateZ(38px);
+    color: #08122B;
+}
+.acct-tile-icon svg { width: 21px; height: 21px; }
+.acct-tile-label { font-size: 0.8rem; color: var(--a-muted); transform: translateZ(18px); }
+.acct-tile-value {
+    font-size: 1.6rem; font-weight: 700; color: #fff; line-height: 1.2;
+    transform: translateZ(28px); margin-top: 0.1rem;
+}
+.acct-tile-sub { font-size: 0.75rem; color: var(--a-muted); margin-top: 0.3rem; transform: translateZ(12px); }
+
+.acct-tile.t-emerald .acct-tile-icon { background: linear-gradient(140deg, #6EE7B7, var(--a-emerald)); box-shadow: 0 14px 26px -12px rgba(52, 211, 153, 0.85); }
+.acct-tile.t-rose    .acct-tile-icon { background: linear-gradient(140deg, #FDA4AF, var(--a-rose));    box-shadow: 0 14px 26px -12px rgba(251, 113, 133, 0.85); }
+.acct-tile.t-amber   .acct-tile-icon { background: linear-gradient(140deg, #FCD34D, var(--a-amber));   box-shadow: 0 14px 26px -12px rgba(251, 191, 36, 0.85); }
+.acct-tile.t-cyan    .acct-tile-icon { background: linear-gradient(140deg, #67E8F9, var(--a-cyan));    box-shadow: 0 14px 26px -12px rgba(34, 211, 238, 0.85); }
+
+/* ==========================================================================
+   Extruded 3D bar chart
+   ========================================================================== */
+.acct-lower {
+    display: grid;
+    grid-template-columns: 1.55fr 1fr;
+    gap: 1.15rem;
+}
+@media (max-width: 1100px) { .acct-lower { grid-template-columns: 1fr; } }
+
+.acct-chart-card { padding: 1.4rem 1.5rem 1.2rem; }
+.acct-chart-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; margin-bottom: 0.4rem; }
+.acct-legend { display: flex; gap: 0.9rem; font-size: 0.76rem; color: var(--a-muted); }
+.acct-legend i { display: inline-block; width: 9px; height: 9px; border-radius: 3px; margin-right: 5px; }
+
+.acct-bars-viewport { perspective: 900px; padding: 1.9rem 0 0.4rem; }
+.acct-bars {
+    display: flex; align-items: flex-end; justify-content: space-around; gap: 0.5rem;
+    height: 215px;
+    transform-style: preserve-3d;
+    transform: rotateX(14deg) rotateY(-16deg);
+}
+.acct-month { display: flex; flex-direction: column; align-items: center; gap: 0.6rem; transform-style: preserve-3d; }
+.acct-pair { display: flex; align-items: flex-end; gap: 11px; height: 190px; transform-style: preserve-3d; }
+.acct-month-label { font-size: 0.7rem; color: var(--a-muted); white-space: nowrap; }
+
+/* Each bar is a real box: front face + top face + right face. */
+.acct-bar {
+    position: relative;
+    width: 26px;
+    height: 0;
+    transform-style: preserve-3d;
+    background: linear-gradient(180deg, var(--bar-light), var(--bar-dark));
+    border-radius: 3px 3px 0 0;
+    transition: height 1s cubic-bezier(.22, 1, .36, 1);
+    transition-delay: var(--bar-delay, 0s);
+}
+.acct-bar::before { /* top face */
+    content: "";
+    position: absolute; top: 0; left: 0;
+    width: 26px; height: 14px;
+    background: var(--bar-top);
+    transform-origin: top;
+    transform: rotateX(90deg);
+    border-radius: 3px 3px 0 0;
+}
+.acct-bar::after { /* right side face */
+    content: "";
+    position: absolute; top: 0; right: 0;
+    width: 14px; height: 100%;
+    background: var(--bar-side);
+    transform-origin: right;
+    transform: rotateY(90deg);
+}
+.acct-bar.b-revenue { --bar-light: #818CF8; --bar-dark: #4338CA; --bar-top: #A5B4FC; --bar-side: #3730A3; }
+.acct-bar.b-expense { --bar-light: #FDA4AF; --bar-dark: #BE123C; --bar-top: #FECDD3; --bar-side: #9F1239; }
+
+/* ==========================================================================
+   Receivable vs Payable balance
+   ========================================================================== */
+.acct-balance-card { padding: 1.4rem 1.5rem; display: flex; flex-direction: column; }
+.acct-balance-rows { margin-top: 1.1rem; display: flex; flex-direction: column; gap: 1.15rem; }
+.acct-balance-row { text-decoration: none; color: inherit; display: block; }
+.acct-balance-row:hover { color: inherit; }
+.acct-balance-row:hover .acct-balance-fill { filter: brightness(1.18); }
+.acct-balance-top { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 0.45rem; }
+.acct-balance-name { font-size: 0.82rem; color: var(--a-muted); }
+.acct-balance-amt { font-size: 1.15rem; font-weight: 700; color: #fff; }
+.acct-balance-track {
+    height: 15px; border-radius: 999px;
+    background: rgba(255, 255, 255, 0.06);
+    box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.5);
+    overflow: hidden;
+}
+.acct-balance-fill {
+    height: 100%; width: 0; border-radius: 999px;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.4);
+    transition: width 1.1s cubic-bezier(.22, 1, .36, 1);
+    transition-delay: 0.25s;
+}
+.acct-balance-fill.f-in { background: linear-gradient(90deg, #FCD34D, #F59E0B); }
+.acct-balance-fill.f-out { background: linear-gradient(90deg, #FDA4AF, #E11D48); }
+.acct-balance-note { font-size: 0.73rem; color: var(--a-muted); margin-top: 0.35rem; }
+
+.acct-net {
+    margin-top: auto; padding-top: 1.2rem;
+    border-top: 1px solid var(--a-border);
+    display: flex; align-items: baseline; justify-content: space-between;
+}
+.acct-net-label { font-size: 0.82rem; color: var(--a-muted); }
+.acct-net-value { font-size: 1.3rem; font-weight: 700; }
+
+/* ---- Footnote ---- */
+.acct-note {
+    margin-top: 1.15rem;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid var(--a-border);
+    border-radius: 16px;
+    padding: 0.9rem 1.1rem;
+    font-size: 0.8rem;
+    color: var(--a-muted);
+    line-height: 1.55;
+}
+.acct-note strong { color: #C7CEEC; }
+
+/* ---- Animations ---- */
+@keyframes acct-pulse {
+    0% { box-shadow: 0 0 0 0 rgba(34, 211, 238, 0.6); }
+    70% { box-shadow: 0 0 0 7px rgba(34, 211, 238, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(34, 211, 238, 0); }
+}
+@keyframes acct-fade-in { to { opacity: 1; } }
+
+@media (prefers-reduced-motion: reduce) {
+    .acct-tile { transition: none !important; transform: none !important; }
+    .acct-bar, .acct-balance-fill, .acct-gauge-arc { transition: none !important; }
+    .acct-flow-band { animation: none !important; opacity: 1 !important; }
+    .acct-pulse { animation: none !important; }
+    .acct-bars { transform: none !important; }
+}
+
+@media (max-width: 767px) {
+    .acct-head h1 { font-size: 1.5rem; }
+    .acct-bars { transform: rotateX(10deg) rotateY(-10deg); }
+    .acct-gauge-wrap { width: 190px; height: 190px; }
+}

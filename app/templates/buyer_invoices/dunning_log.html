@@ -2,6 +2,8 @@
 {% block title %}Dunning Log - OM Dairy{% endblock %}
 
 {% block content %}
+{% set active = 'dunning_log' %}
+{% include "partials/buyer_nav.html" %}
 <h2 class="mb-3">Dunning &amp; Invoice Email Log</h2>
 <p class="text-muted">Every payment reminder and invoice email sent to buyers, most recent first (last 300).</p>
 

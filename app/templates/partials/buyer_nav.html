@@ -1,0 +1,8 @@
+{# Shared sub-nav for the Buyer section. Every buyer-side page sets
+   `{% set active = '...' %}` before including this. #}
+<nav class="section-nav">
+    <a class="{{ 'active' if active == 'buyers' }}" href="{{ url_for('buyers.list_buyers') }}">Buyers</a>
+    <a class="{{ 'active' if active == 'buyer_sales' }}" href="{{ url_for('buyer_sales.list_sales') }}">Buyer Sales</a>
+    <a class="{{ 'active' if active == 'buyer_invoices' }}" href="{{ url_for('buyer_invoices.list_invoices') }}">Buyer Invoices</a>
+    <a class="{{ 'active' if active == 'dunning_log' }}" href="{{ url_for('buyer_invoices.dunning_log') }}">Dunning Log</a>
+</nav>

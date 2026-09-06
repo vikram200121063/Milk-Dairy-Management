@@ -2,6 +2,8 @@
 {% block title %}Rate Configuration - OM Dairy{% endblock %}
 
 {% block content %}
+{% set active = 'rate_config' %}
+{% include "partials/customer_nav.html" %}
 <h2 class="mb-3">Rate Configuration</h2>
 <p class="text-muted">
     Define the automatic pricing formula for each milk type:

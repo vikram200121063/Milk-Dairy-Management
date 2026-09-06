@@ -2,6 +2,8 @@
 {% block title %}{{ payment.customer_name }} - {{ payment.payment_period }}{% endblock %}
 
 {% block content %}
+{% set active = 'payments' %}
+{% include "partials/customer_nav.html" %}
 <div class="d-flex justify-content-between align-items-start mb-3">
     <div>
         <h2 class="mb-0">{{ payment.customer_name }}</h2>

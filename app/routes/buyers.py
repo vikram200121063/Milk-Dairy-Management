@@ -14,7 +14,7 @@ from flask import (
 from app.utils.decorators import login_required
 from app.utils.id_generator import get_next_sequence
 from app.routes.customers import MOBILE_RE, EMAIL_RE
-from app.services import finance_settings_service
+from app.services import finance_settings_service, ledger_service
 
 buyers_bp = Blueprint("buyers", __name__, url_prefix="/buyers")
 
@@ -217,22 +217,13 @@ def profile(buyer_id):
         flash("Buyer not found.", "danger")
         return redirect(url_for("buyers.list_buyers"))
 
-    recent_sales = list(
-        current_app.db.buyer_sales.find({"buyer_id": buyer_id}).sort("sale_date", -1).limit(10)
-    )
-    invoices = list(
-        current_app.db.buyer_invoices.find({"buyer_id": buyer_id}).sort("period_start", -1)
-    )
-    outstanding_total = sum(i["remaining_amount"] for i in invoices)
-    overdue_count = sum(1 for i in invoices if i["status"] == "Overdue")
+    ledger = ledger_service.get_entity_ledger(current_app.db, "buyer", buyer_id)
 
     return render_template(
         "buyers/profile.html",
         buyer=buyer,
-        recent_sales=recent_sales,
-        invoices=invoices,
-        outstanding_total=outstanding_total,
-        overdue_count=overdue_count,
+        ledger=ledger,
+        detail_url=url_for("accounting.receivable_detail", buyer_id=buyer_id),
     )
 
 

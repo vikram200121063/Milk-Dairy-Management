@@ -15,7 +15,7 @@ from flask import (
 from app.utils.decorators import login_required
 from app.utils.id_generator import get_next_sequence
 from app.services.rate_service import MILK_TYPES
-from app.services import finance_settings_service
+from app.services import finance_settings_service, ledger_service
 
 buyer_sales_bp = Blueprint("buyer_sales", __name__, url_prefix="/buyer-sales")
 
@@ -185,25 +185,26 @@ def add_sale():
         seq = get_next_sequence(current_app.db, "buyer_sale_id")
         sale_id = f"BSL{seq:05d}"
 
-        current_app.db.buyer_sales.insert_one(
-            {
-                "sale_id": sale_id,
-                "buyer_id": data["buyer_id"],
-                "buyer_name": buyer["company_name"],
-                "sale_date": data["sale_date"],
-                "milk_type": data["milk_type"],
-                "quality_grade": data["quality_grade"],
-                "quantity": data["quantity"],
-                "rate_per_litre": data["rate_per_litre"],
-                "gross_amount": gross_amount,
-                "tax_percentage": data["tax_percentage"],
-                "tax_amount": tax_amount,
-                "other_charges": data["other_charges"],
-                "total_amount": total_amount,
-                "notes": data["notes"],
-                "created_at": datetime.now(timezone.utc),
-            }
-        )
+        sale_doc = {
+            "sale_id": sale_id,
+            "buyer_id": data["buyer_id"],
+            "buyer_name": buyer["company_name"],
+            "sale_date": data["sale_date"],
+            "milk_type": data["milk_type"],
+            "quality_grade": data["quality_grade"],
+            "quantity": data["quantity"],
+            "rate_per_litre": data["rate_per_litre"],
+            "gross_amount": gross_amount,
+            "tax_percentage": data["tax_percentage"],
+            "tax_amount": tax_amount,
+            "other_charges": data["other_charges"],
+            "total_amount": total_amount,
+            "notes": data["notes"],
+            "created_at": datetime.now(timezone.utc),
+        }
+        current_app.db.buyer_sales.insert_one(sale_doc)
+        # Common Accounting module: auto-post Dr Accounts Receivable / Cr Milk Sales Revenue.
+        ledger_service.post_buyer_sale(current_app.db, sale_doc)
         flash(
             f"Sale {sale_id} recorded for {buyer['company_name']} \u2013 \u20b9{total_amount:.2f}",
             "success",
@@ -262,27 +263,25 @@ def edit_sale(sale_id):
             data["quantity"], data["rate_per_litre"], data["tax_percentage"], data["other_charges"]
         )
 
-        current_app.db.buyer_sales.update_one(
-            {"sale_id": sale_id},
-            {
-                "$set": {
-                    "buyer_id": data["buyer_id"],
-                    "buyer_name": buyer["company_name"],
-                    "sale_date": data["sale_date"],
-                    "milk_type": data["milk_type"],
-                    "quality_grade": data["quality_grade"],
-                    "quantity": data["quantity"],
-                    "rate_per_litre": data["rate_per_litre"],
-                    "gross_amount": gross_amount,
-                    "tax_percentage": data["tax_percentage"],
-                    "tax_amount": tax_amount,
-                    "other_charges": data["other_charges"],
-                    "total_amount": total_amount,
-                    "notes": data["notes"],
-                    "updated_at": datetime.now(timezone.utc),
-                }
-            },
-        )
+        updated_fields = {
+            "buyer_id": data["buyer_id"],
+            "buyer_name": buyer["company_name"],
+            "sale_date": data["sale_date"],
+            "milk_type": data["milk_type"],
+            "quality_grade": data["quality_grade"],
+            "quantity": data["quantity"],
+            "rate_per_litre": data["rate_per_litre"],
+            "gross_amount": gross_amount,
+            "tax_percentage": data["tax_percentage"],
+            "tax_amount": tax_amount,
+            "other_charges": data["other_charges"],
+            "total_amount": total_amount,
+            "notes": data["notes"],
+            "updated_at": datetime.now(timezone.utc),
+        }
+        current_app.db.buyer_sales.update_one({"sale_id": sale_id}, {"$set": updated_fields})
+        # Common Accounting module: re-post the Sale entry with the edited amount/buyer.
+        ledger_service.post_buyer_sale(current_app.db, {"sale_id": sale_id, **updated_fields})
         flash(
             "Sale updated successfully. If this sale falls in an already-generated "
             "invoice period, regenerate that invoice to pick up the change.",
@@ -317,6 +316,8 @@ def delete_sale(sale_id):
         {"buyer_id": sale["buyer_id"], "period_start": {"$lte": sale["sale_date"]}, "period_end": {"$gte": sale["sale_date"]}}
     )
     current_app.db.buyer_sales.delete_one({"sale_id": sale_id})
+    # Common Accounting module: remove the corresponding ledger entries too.
+    ledger_service.void_buyer_sale(current_app.db, sale_id)
 
     if existing_invoice:
         flash(

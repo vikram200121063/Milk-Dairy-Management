@@ -2,6 +2,8 @@
 {% block title %}{{ invoice.buyer_name }} - {{ invoice.billing_period }}{% endblock %}
 
 {% block content %}
+{% set active = 'buyer_invoices' %}
+{% include "partials/buyer_nav.html" %}
 <div class="d-flex justify-content-between align-items-start mb-3 flex-wrap gap-2">
     <div>
         <h2 class="mb-0">{{ invoice.buyer_name }}</h2>

@@ -2,6 +2,8 @@
 {% block title %}{{ buyer.company_name }} - OM Dairy{% endblock %}
 
 {% block content %}
+{% set active = 'buyers' %}
+{% include "partials/buyer_nav.html" %}
 <div class="d-flex justify-content-between align-items-start mb-3">
     <div>
         <h2 class="mb-0">{{ buyer.company_name }}</h2>
@@ -11,8 +13,8 @@
         {% else %}
             <span class="badge bg-secondary ms-2">Inactive</span>
         {% endif %}
-        {% if overdue_count %}
-            <span class="badge bg-danger ms-1">{{ overdue_count }} overdue invoice(s)</span>
+        {% if ledger.summary.overdue_count %}
+            <span class="badge bg-danger ms-1">{{ ledger.summary.overdue_count }} overdue invoice(s)</span>
         {% endif %}
     </div>
     <div>
@@ -21,91 +23,26 @@
     </div>
 </div>
 
-<div class="row g-3 mb-4">
-    <div class="col-md-6">
-        <div class="card shadow-sm h-100">
-            <div class="card-body">
-                <div class="row">
-                    <div class="col-6 mb-2"><strong>Contact Person:</strong> {{ buyer.contact_person }}</div>
-                    <div class="col-6 mb-2"><strong>Mobile:</strong> {{ buyer.mobile_number }}</div>
-                    <div class="col-12 mb-2"><strong>Email:</strong> {{ buyer.email }}</div>
-                    <div class="col-6 mb-2"><strong>GST Number:</strong> {{ buyer.gst_number or '\u2014' }}</div>
-                    <div class="col-6 mb-2"><strong>Payment Terms:</strong> {{ buyer.payment_terms_days }} days</div>
-                    <div class="col-6 mb-2"><strong>Credit Limit:</strong> &#8377;{{ "%.2f"|format(buyer.credit_limit) }}</div>
-                    <div class="col-12"><strong>Address:</strong> {{ buyer.address or '\u2014' }}</div>
-                </div>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-6">
-        <div class="card shadow-sm text-center p-3 h-100 d-flex justify-content-center">
-            <div class="text-muted small">Total Outstanding</div>
-            <div class="fs-2 fw-bold {{ 'text-danger' if outstanding_total > 0 else 'text-success' }}">
-                &#8377;{{ "%.2f"|format(outstanding_total) }}
-            </div>
+<div class="card shadow-sm mb-4">
+    <div class="card-body">
+        <div class="row">
+            <div class="col-6 mb-2"><strong>Contact Person:</strong> {{ buyer.contact_person }}</div>
+            <div class="col-6 mb-2"><strong>Mobile:</strong> {{ buyer.mobile_number }}</div>
+            <div class="col-12 mb-2"><strong>Email:</strong> {{ buyer.email }}</div>
+            <div class="col-6 mb-2"><strong>GST Number:</strong> {{ buyer.gst_number or '\u2014' }}</div>
+            <div class="col-6 mb-2"><strong>Payment Terms:</strong> {{ buyer.payment_terms_days }} days</div>
+            <div class="col-6 mb-2"><strong>Credit Limit:</strong> &#8377;{{ "%.2f"|format(buyer.credit_limit) }}</div>
+            <div class="col-12"><strong>Address:</strong> {{ buyer.address or '\u2014' }}</div>
         </div>
     </div>
 </div>
 
-<div class="card shadow-sm mb-4">
-    <div class="card-header d-flex justify-content-between align-items-center">
-        Invoices
-        <a href="{{ url_for('buyer_invoices.list_invoices', buyer_id=buyer.buyer_id) }}" class="small">View all &rarr;</a>
-    </div>
-    <div class="table-responsive">
-        <table class="table table-sm mb-0">
-            <thead class="table-light">
-                <tr><th>Period</th><th>Total</th><th>Paid</th><th>Remaining</th><th>Due</th><th>Status</th></tr>
-            </thead>
-            <tbody>
-                {% for inv in invoices[:8] %}
-                <tr>
-                    <td><a href="{{ url_for('buyer_invoices.detail', invoice_id=inv.invoice_id) }}">{{ inv.billing_period }}</a></td>
-                    <td>&#8377;{{ "%.2f"|format(inv.total_amount) }}</td>
-                    <td>&#8377;{{ "%.2f"|format(inv.amount_paid) }}</td>
-                    <td>&#8377;{{ "%.2f"|format(inv.remaining_amount) }}</td>
-                    <td>{{ inv.due_date.strftime('%d %b %Y') }}</td>
-                    <td>
-                        {% if inv.status == 'Paid' %}<span class="badge bg-success">Paid</span>
-                        {% elif inv.status == 'Partially Paid' %}<span class="badge bg-warning text-dark">Partial</span>
-                        {% elif inv.status == 'Overdue' %}<span class="badge bg-danger">Overdue</span>
-                        {% else %}<span class="badge bg-secondary">Unpaid</span>{% endif %}
-                    </td>
-                </tr>
-                {% else %}
-                <tr><td colspan="6" class="text-center text-muted py-3">No invoices generated yet.</td></tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </div>
+<div class="d-flex justify-content-end gap-3 mb-2">
+    <a href="{{ url_for('buyer_invoices.list_invoices', buyer_id=buyer.buyer_id) }}" class="small">All Invoices &rarr;</a>
+    <a href="{{ url_for('buyer_sales.list_sales', buyer_id=buyer.buyer_id) }}" class="small">All Sales &rarr;</a>
 </div>
 
-<div class="card shadow-sm mb-4">
-    <div class="card-header d-flex justify-content-between align-items-center">
-        Recent Sales
-        <a href="{{ url_for('buyer_sales.list_sales', buyer_id=buyer.buyer_id) }}" class="small">View all &rarr;</a>
-    </div>
-    <div class="table-responsive">
-        <table class="table table-sm mb-0">
-            <thead class="table-light">
-                <tr><th>Date</th><th>Type</th><th>Qty (L)</th><th>Rate</th><th>Total</th></tr>
-            </thead>
-            <tbody>
-                {% for s in recent_sales %}
-                <tr>
-                    <td>{{ s.sale_date.strftime('%d %b %Y') }}</td>
-                    <td>{{ s.milk_type }}</td>
-                    <td>{{ "%.2f"|format(s.quantity) }}</td>
-                    <td>&#8377;{{ "%.2f"|format(s.rate_per_litre) }}</td>
-                    <td>&#8377;{{ "%.2f"|format(s.total_amount) }}</td>
-                </tr>
-                {% else %}
-                <tr><td colspan="5" class="text-center text-muted py-3">No sales recorded yet.</td></tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </div>
-</div>
+{% include "partials/accounting_summary.html" %}
 
 <a href="{{ url_for('buyers.list_buyers') }}" class="btn btn-outline-secondary">&larr; Back to Buyers</a>
 {% endblock %}

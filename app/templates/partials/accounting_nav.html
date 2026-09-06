@@ -1,0 +1,14 @@
+{# Shared sub-nav for the common Accounting module. Every accounting/*.html
+   page sets `{% set active = '...' %}` before including this, so the
+   current section is highlighted. #}
+<nav class="section-nav">
+    <a class="{{ 'active' if active == 'dashboard' }}" href="{{ url_for('accounting.dashboard') }}">Dashboard</a>
+    <a class="{{ 'active' if active == 'receivables' }}" href="{{ url_for('accounting.receivables') }}">Receivables</a>
+    <a class="{{ 'active' if active == 'payables' }}" href="{{ url_for('accounting.payables') }}">Payables</a>
+    <a class="{{ 'active' if active == 'revenue' }}" href="{{ url_for('accounting.revenue') }}">Revenue</a>
+    <a class="{{ 'active' if active == 'expense_report' }}" href="{{ url_for('accounting.expense_report') }}">Cost Report</a>
+    <a class="{{ 'active' if active == 'expenses' }}" href="{{ url_for('expenses.list_expenses') }}">Expenses &amp; Income</a>
+    <a class="{{ 'active' if active == 'cash_bank' }}" href="{{ url_for('accounting.cash_bank') }}">Cash &amp; Bank</a>
+    <a class="{{ 'active' if active == 'pnl' }}" href="{{ url_for('accounting.pnl') }}">P&amp;L</a>
+    <a class="{{ 'active' if active == 'settings' }}" href="{{ url_for('accounting.settings') }}">Settings</a>
+</nav>

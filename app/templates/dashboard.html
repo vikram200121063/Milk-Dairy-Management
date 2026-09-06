@@ -1,147 +1,237 @@
 {% extends "base.html" %}
 {% block title %}Dashboard - OM Dairy{% endblock %}
+{% block body_class %}dash-page{% endblock %}
+
+{% block extra_head %}
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@600;700;800&display=swap" rel="stylesheet">
+<link href="{{ url_for('static', filename='css/dashboard.css') }}" rel="stylesheet">
+{% endblock %}
 
 {% block content %}
-<div class="d-flex justify-content-between align-items-center mb-4">
-    <h2 class="mb-0">Welcome, {{ username }}</h2>
-    <div>
-        <a href="{{ url_for('milk_entries.add_entry') }}" class="btn btn-primary btn-sm">+ Add Milk Entry</a>
-        <a href="{{ url_for('customers.add_customer') }}" class="btn btn-outline-primary btn-sm">+ Add Customer</a>
-    </div>
-</div>
+<div class="dash">
 
-<div class="row g-3 mb-4">
-    <div class="col-6 col-md-3">
-        <div class="card shadow-sm stat-card text-center p-3 h-100">
-            <svg class="stat-icon mx-auto" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M17 20v-1a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v1"/><circle cx="9" cy="7" r="3.2"/><path d="M20 20v-1a3.5 3.5 0 0 0-2.5-3.36"/><path d="M14.7 3.8a3.2 3.2 0 0 1 0 6"/>
-            </svg>
-            <div class="text-muted small">Total Customers</div>
-            <div class="fs-3 fw-bold">{{ total_customers }}</div>
+    <!-- ============== Hero banner ============== -->
+    <div class="dash-hero">
+        <div class="dash-hero-text">
+            <span class="dash-hero-eyebrow"><span class="dash-live-dot"></span> Live &middot; {{ today_label }}</span>
+            <h1 class="dash-display">Good to see you, {{ username or "there" }}</h1>
+            <p>
+                {{ today_milk_count }} collection{{ '' if today_milk_count == 1 else 's' }} logged today across
+                {{ total_customers }} customer{{ '' if total_customers == 1 else 's' }} and {{ total_buyers }} active buyer{{ '' if total_buyers == 1 else 's' }}.
+            </p>
         </div>
-    </div>
-    <div class="col-6 col-md-3">
-        <div class="card shadow-sm stat-card accent-success text-center p-3 h-100">
-            <svg class="stat-icon mx-auto" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M9 12.5l2 2 4-4.5"/><circle cx="12" cy="12" r="9"/>
+        <div class="dash-hero-art" aria-hidden="true">
+            <svg viewBox="0 0 220 170" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <ellipse cx="110" cy="150" rx="88" ry="14" fill="#fff" opacity="0.08"/>
+                <g class="dash-float-1">
+                    <circle cx="42" cy="40" r="9" fill="#fff" opacity="0.55"/>
+                </g>
+                <g class="dash-float-2">
+                    <circle cx="182" cy="30" r="6" fill="#22D3EE" opacity="0.85"/>
+                </g>
+                <g class="dash-float-3">
+                    <path d="M168 60c0 5-4.5 9-9 9s-9-4-9-9c0-5 9-15 9-15s9 10 9 15z" fill="#fff" opacity="0.75"/>
+                </g>
+                <!-- milk can -->
+                <path d="M76 62h58l-7 78a10 10 0 0 1-10 9H93a10 10 0 0 1-10-9l-7-78z" fill="#fff" opacity="0.92"/>
+                <path d="M72 62h66l2-10a6 6 0 0 0-6-7H76a6 6 0 0 0-6 7l2 10z" fill="#E0E7FF"/>
+                <rect x="96" y="34" width="18" height="12" rx="3" fill="#E0E7FF"/>
+                <path d="M96 40h18" stroke="#4338CA" stroke-width="2" stroke-linecap="round"/>
+                <path d="M82 78h46" stroke="#C7D2FE" stroke-width="2"/>
+                <path d="M84 96h42" stroke="#C7D2FE" stroke-width="2"/>
+                <g class="dash-wave">
+                    <path d="M78 108c8-6 16-6 24 0s16 6 24 0 16-6 20 0l-2 24a10 10 0 0 1-10 9H93a10 10 0 0 1-10-9l-5-24z" fill="#22D3EE" opacity="0.5"/>
+                </g>
             </svg>
-            <div class="text-muted small">Active Customers</div>
-            <div class="fs-3 fw-bold">{{ active_customers }}</div>
-        </div>
-    </div>
-    <div class="col-6 col-md-3">
-        <div class="card shadow-sm stat-card accent-marigold text-center p-3 h-100">
-            <svg class="stat-icon mx-auto" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M12 3c3 4 5 6.6 5 9.5a5 5 0 0 1-10 0C7 9.6 9 7 12 3z"/>
-            </svg>
-            <div class="text-muted small">Today's Collections</div>
-            <div class="fs-3 fw-bold">{{ today_stats.count }}</div>
-        </div>
-    </div>
-    <div class="col-6 col-md-3">
-        <div class="card shadow-sm stat-card accent-copper text-center p-3 h-100">
-            <svg class="stat-icon mx-auto" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M6 3h9l-1 4.5c1.8.7 3 2.4 3 4.5a5.5 5.5 0 0 1-5.5 5.5H8A5.5 5.5 0 0 1 2.5 12c0-2.1 1.2-3.8 3-4.5L6 3z"/><path d="M6 3l1 4.5h6L14 3"/>
-            </svg>
-            <div class="text-muted small">Today's Quantity</div>
-            <div class="fs-3 fw-bold">{{ "%.1f"|format(today_stats.quantity) }} L</div>
-        </div>
-    </div>
-    <div class="col-6 col-md-4">
-        <div class="card shadow-sm stat-card text-center p-3 h-100">
-            <svg class="stat-icon mx-auto" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M6 4h9M6 8h9M6 4l7 16M6 8l7 5"/>
-            </svg>
-            <div class="text-muted small">Today's Estimated Amount</div>
-            <div class="fs-3 fw-bold">₹{{ "%.2f"|format(today_stats.amount) }}</div>
-        </div>
-    </div>
-    <div class="col-6 col-md-4">
-        <div class="card shadow-sm stat-card accent-marigold text-center p-3 h-100">
-            <svg class="stat-icon mx-auto" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                <circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.3 2"/>
-            </svg>
-            <div class="text-muted small">Pending Payment Records</div>
-            <div class="fs-3 fw-bold">{{ pending_stats.count }}</div>
-        </div>
-    </div>
-    <div class="col-12 col-md-4">
-        <div class="card shadow-sm stat-card accent-danger text-center p-3 h-100">
-            <svg class="stat-icon mx-auto" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M12 3.5 21 19H3L12 3.5z"/><path d="M12 10v4.2"/><circle cx="12" cy="17" r="0.4" fill="currentColor"/>
-            </svg>
-            <div class="text-muted small">Total Pending Amount</div>
-            <div class="fs-3 fw-bold">₹{{ "%.2f"|format(pending_stats.amount) }}</div>
-        </div>
-    </div>
-</div>
-
-<div class="row g-3">
-    <div class="col-md-6">
-        <div class="card shadow-sm h-100">
-            <div class="card-header d-flex justify-content-between align-items-center">
-                Recent Milk Entries
-                <a href="{{ url_for('milk_entries.list_entries') }}" class="small">View all →</a>
-            </div>
-            <div class="table-responsive">
-                <table class="table table-sm mb-0">
-                    <thead class="table-light">
-                        <tr><th>Date</th><th>Customer</th><th>Shift</th><th>Qty</th><th>Amount</th></tr>
-                    </thead>
-                    <tbody>
-                        {% for e in recent_entries %}
-                        <tr>
-                            <td>{{ e.date.strftime('%d %b') }}</td>
-                            <td>{{ e.customer_name }}</td>
-                            <td>{{ e.shift }}</td>
-                            <td>{{ "%.2f"|format(e.quantity) }} L</td>
-                            <td>₹{{ "%.2f"|format(e.total_amount) }}</td>
-                        </tr>
-                        {% else %}
-                        <tr><td colspan="5" class="text-center text-muted py-3">No milk entries yet.</td></tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
         </div>
     </div>
 
-    <div class="col-md-6">
-        <div class="card shadow-sm h-100">
-            <div class="card-header d-flex justify-content-between align-items-center">
-                Recent Payments
-                <a href="{{ url_for('payments.list_payments') }}" class="small">View all →</a>
+    <!-- ============== Stat cards ============== -->
+    <div class="dash-stats">
+        <div class="dash-glass-card dash-stat is-cyan">
+            <div class="dash-stat-top">
+                <div class="dash-stat-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 2h6l1 4.5c2.2.9 3.7 3 3.7 5.5A6.7 6.7 0 0 1 13 18.7h-2A6.7 6.7 0 0 1 4.3 12c0-2.5 1.5-4.6 3.7-5.5L9 2z"/></svg>
+                </div>
+                {% if milk_trend_pct is not none %}
+                <span class="dash-trend-chip {{ 'up' if milk_trend_pct > 0 else ('down' if milk_trend_pct < 0 else 'flat') }}">
+                    {{ '+' if milk_trend_pct > 0 else '' }}{{ milk_trend_pct }}%
+                </span>
+                {% endif %}
             </div>
-            <div class="table-responsive">
-                <table class="table table-sm mb-0">
-                    <thead class="table-light">
-                        <tr><th>Customer</th><th>Period</th><th>Final Payable</th><th>Status</th></tr>
-                    </thead>
-                    <tbody>
-                        {% for p in recent_payments %}
-                        <tr>
-                            <td>
-                                <a href="{{ url_for('payments.detail', payment_id=p.payment_id) }}">{{ p.customer_name }}</a>
-                            </td>
-                            <td>{{ p.payment_period }}</td>
-                            <td>₹{{ "%.2f"|format(p.final_payable_amount) }}</td>
-                            <td>
-                                {% if p.payment_status == 'Paid' %}
-                                    <span class="badge bg-success">Paid</span>
-                                {% elif p.payment_status == 'Partially Paid' %}
-                                    <span class="badge bg-warning text-dark">Partial</span>
-                                {% else %}
-                                    <span class="badge bg-secondary">Pending</span>
-                                {% endif %}
-                            </td>
-                        </tr>
-                        {% else %}
-                        <tr><td colspan="4" class="text-center text-muted py-3">No payments generated yet.</td></tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
+            <div class="dash-stat-label">Today's Milk Collection</div>
+            <div class="dash-stat-value dash-display"><span data-count-to="{{ today_milk_quantity }}" data-decimals="1" data-suffix=" L">0 L</span></div>
+            <div class="dash-stat-sub">{{ today_milk_count }} entr{{ 'y' if today_milk_count == 1 else 'ies' }} logged today</div>
+        </div>
+
+        <div class="dash-glass-card dash-stat is-green">
+            <div class="dash-stat-top">
+                <div class="dash-stat-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M17 6.5c0-2-2.2-3.5-5-3.5S7 4.5 7 6.8c0 4.4 10 2.2 10 6.7 0 2.3-2.2 4-5 4s-5-1.5-5-3.7"/></svg>
+                </div>
+                {% if revenue_trend_pct is not none %}
+                <span class="dash-trend-chip {{ 'up' if revenue_trend_pct > 0 else ('down' if revenue_trend_pct < 0 else 'flat') }}">
+                    {{ '+' if revenue_trend_pct > 0 else '' }}{{ revenue_trend_pct }}%
+                </span>
+                {% endif %}
+            </div>
+            <div class="dash-stat-label">Today's Revenue</div>
+            <div class="dash-stat-value dash-display"><span data-count-to="{{ today_revenue }}" data-decimals="0" data-prefix="&#8377;">&#8377;0</span></div>
+            <div class="dash-stat-sub">Milk sales booked today</div>
+        </div>
+
+        <div class="dash-glass-card dash-stat is-amber">
+            <div class="dash-stat-top">
+                <div class="dash-stat-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16v11H4z"/><path d="M4 5l8 7 8-7"/><path d="M12 15v5m-3-3 3 3 3-3"/></svg>
+                </div>
+                {% if overdue.count %}
+                <span class="dash-trend-chip down">{{ overdue.count }} overdue</span>
+                {% endif %}
+            </div>
+            <div class="dash-stat-label">Accounts Receivable</div>
+            <div class="dash-stat-value dash-display"><span data-count-to="{{ receivable_balance }}" data-decimals="0" data-prefix="&#8377;">&#8377;0</span></div>
+            <div class="dash-stat-sub">Owed by buyers, right now</div>
+        </div>
+
+        <div class="dash-glass-card dash-stat is-rose">
+            <div class="dash-stat-top">
+                <div class="dash-stat-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h16v11H4z"/><path d="M20 8l-8-6-8 6"/><path d="M12 19v-5m-3 3 3-3 3 3"/></svg>
+                </div>
+                {% if pending_customer_payments.count %}
+                <span class="dash-trend-chip flat">{{ pending_customer_payments.count }} pending</span>
+                {% endif %}
+            </div>
+            <div class="dash-stat-label">Accounts Payable</div>
+            <div class="dash-stat-value dash-display"><span data-count-to="{{ payable_balance }}" data-decimals="0" data-prefix="&#8377;">&#8377;0</span></div>
+            <div class="dash-stat-sub">Owed to customers, right now</div>
+        </div>
+    </div>
+
+    <!-- ============== Charts ============== -->
+    <div class="dash-charts">
+        <div class="dash-glass-card dash-chart-card">
+            <div class="dash-chart-head">
+                <h3>Revenue vs Expense</h3>
+                <div class="dash-chart-legend">
+                    <span><span class="dash-legend-dot" style="background:#4F46E5"></span>Revenue</span>
+                    <span><span class="dash-legend-dot" style="background:#E11D48"></span>Expense</span>
+                </div>
+            </div>
+            <div class="dash-chart-canvas-wrap"><canvas id="dash-revenue-chart"></canvas></div>
+        </div>
+        <div class="dash-glass-card dash-chart-card">
+            <div class="dash-chart-head">
+                <h3>Milk Collection</h3>
+                <div class="dash-chart-legend">
+                    <span><span class="dash-legend-dot" style="background:#0891B2"></span>Litres / day</span>
+                </div>
+            </div>
+            <div class="dash-chart-canvas-wrap"><canvas id="dash-milk-chart"></canvas></div>
+        </div>
+    </div>
+
+    <!-- ============== Financial overview ============== -->
+    <div class="dash-glass-card dash-finance">
+        <div class="dash-finance-item" style="--dash-item-color:#4F46E5">
+            <div class="dash-finance-label">Revenue (this month)</div>
+            <div class="dash-finance-value">&#8377;{{ "{:,.0f}".format(financials.revenue) }}</div>
+        </div>
+        <div class="dash-finance-item" style="--dash-item-color:#E11D48">
+            <div class="dash-finance-label">Expenses (this month)</div>
+            <div class="dash-finance-value">&#8377;{{ "{:,.0f}".format(financials.milk_purchase_cost + financials.other_expenses) }}</div>
+        </div>
+        <div class="dash-finance-item" style="--dash-item-color:#0891B2">
+            <div class="dash-finance-label">Cash Balance</div>
+            <div class="dash-finance-value">&#8377;{{ "{:,.0f}".format(financials.cash_bank_balance) }}</div>
+        </div>
+        <div class="dash-finance-item" style="--dash-item-color:#059669">
+            <div class="dash-finance-label">Net Profit (this month)</div>
+            <div class="dash-finance-value" style="color: {{ '#059669' if financials.net_profit >= 0 else '#E11D48' }}">
+                &#8377;{{ "{:,.0f}".format(financials.net_profit) }}
             </div>
         </div>
     </div>
+
+    <!-- ============== Quick actions ============== -->
+    <div class="dash-section-title">Quick Actions</div>
+    <div class="dash-actions">
+        <a href="{{ url_for('customers.add_customer') }}" class="dash-glass-card dash-action is-a">
+            <div class="dash-action-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 20v-1.5a4.5 4.5 0 0 0-4.5-4.5h-3A4.5 4.5 0 0 0 4 18.5V20"/><circle cx="10" cy="7" r="3.5"/><path d="M18 8v6M21 11h-6"/></svg></div>
+            <div>
+                <div class="dash-action-title">Add Customer</div>
+                <div class="dash-action-sub">Register a new supplier</div>
+            </div>
+        </a>
+        <a href="{{ url_for('milk_entries.add_entry') }}" class="dash-glass-card dash-action is-b">
+            <div class="dash-action-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2s6 6.5 6 11a6 6 0 0 1-12 0c0-4.5 6-11 6-11z"/><path d="M12 22v-3"/></svg></div>
+            <div>
+                <div class="dash-action-title">Add Milk Entry</div>
+                <div class="dash-action-sub">Log a new collection</div>
+            </div>
+        </a>
+        <a href="{{ url_for('payments.list_payments') }}" class="dash-glass-card dash-action is-c">
+            <div class="dash-action-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="18" height="13" rx="2.5"/><path d="M3 10h18"/><path d="M7 15h4"/></svg></div>
+            <div>
+                <div class="dash-action-title">Record Payment</div>
+                <div class="dash-action-sub">Settle a customer cycle</div>
+            </div>
+        </a>
+        <a href="{{ url_for('accounting.dashboard') }}" class="dash-glass-card dash-action is-d">
+            <div class="dash-action-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V10M11 20V4M18 20v-7"/></svg></div>
+            <div>
+                <div class="dash-action-title">View Reports</div>
+                <div class="dash-action-sub">Accounting &amp; P&amp;L</div>
+            </div>
+        </a>
+    </div>
+
+    <!-- ============== Recent activity ============== -->
+    <div class="dash-glass-card dash-activity">
+        <div class="dash-activity-head">
+            <h3>Recent Activity</h3>
+        </div>
+        <ul class="dash-activity-list">
+            {% for item in activity %}
+            <li class="dash-activity-row">
+                <div class="dash-activity-icon {{ item.icon }}">
+                    {% if item.icon == 'milk' %}
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2s6 6.5 6 11a6 6 0 0 1-12 0c0-4.5 6-11 6-11z"/></svg>
+                    {% elif item.icon == 'sale' %}
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.5 12.5 12.7 20.3a2 2 0 0 1-2.8 0l-6.2-6.2a2 2 0 0 1 0-2.8L11.5 3.5H19a1.5 1.5 0 0 1 1.5 1.5v7.5z"/><circle cx="15.5" cy="8.5" r="1.2" fill="currentColor" stroke="none"/></svg>
+                    {% elif item.icon == 'payout' %}
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17 17 7M9 7h8v8"/></svg>
+                    {% else %}
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 7 7 17M15 17H7V9"/></svg>
+                    {% endif %}
+                </div>
+                <div class="dash-activity-body">
+                    <div class="dash-activity-title">{{ item.title }}</div>
+                    <div class="dash-activity-detail">{{ item.detail }}</div>
+                </div>
+                <div class="dash-activity-amount {{ 'plus' if item.amount_sign == '+' else 'minus' }}">
+                    {{ item.amount_sign }}&#8377;{{ "{:,.0f}".format(item.amount) }}
+                </div>
+                <div class="dash-activity-time">{{ item.ts.strftime('%d %b, %H:%M') if item.ts else '' }}</div>
+            </li>
+            {% else %}
+            <li class="dash-empty">No activity yet &ndash; record your first milk entry or sale to see it here.</li>
+            {% endfor %}
+        </ul>
+    </div>
+
 </div>
+
+<script type="application/json" id="dash-data">
+{{ {"trends": trends} | tojson }}
+</script>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<script src="{{ url_for('static', filename='js/count-up.js') }}"></script>
+<script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
 {% endblock %}

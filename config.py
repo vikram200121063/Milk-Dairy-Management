@@ -28,6 +28,10 @@ class Config:
     # Should always be False in production.
     DEBUG = os.environ.get("FLASK_DEBUG", "False").lower() in ("true", "1")
 
+    # Caps any single request body (e.g. a profile photo upload) at 8MB,
+    # so a mistakenly-huge file can't tie up the server or fill the disk.
+    MAX_CONTENT_LENGTH = 8 * 1024 * 1024
+
     # Business details shown on printed/PDF invoices
     DAIRY_NAME = os.environ.get("DAIRY_NAME", "OM Dairy")
     DAIRY_ADDRESS = os.environ.get("DAIRY_ADDRESS", "Village Road, Your Town")

@@ -9,15 +9,16 @@
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@600;700;900&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@600;700;900&family=Sora:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 
     <link
         href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
         rel="stylesheet"
     >
     <link href="{{ url_for('static', filename='css/style.css') }}" rel="stylesheet">
+    {% block extra_head %}{% endblock %}
 </head>
-<body>
+<body class="{% block body_class %}{% endblock %}">
 
     {% if session.get('user_id') %}
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
@@ -26,35 +27,43 @@
                 <img src="{{ url_for('static', filename='img/logo-mark.svg') }}" alt="OM Dairy">
                 <span class="brand-word">OM Dairy</span>
             </a>
-            <div class="d-flex align-items-center">
-                <a class="nav-link text-light me-3" href="{{ url_for('customers.list_customers') }}">Customers</a>
-                <a class="nav-link text-light me-3" href="{{ url_for('milk_entries.list_entries') }}">Milk Entries</a>
-                <a class="nav-link text-light me-3" href="{{ url_for('rate_config.list_configs') }}">Rate Config</a>
-                <a class="nav-link text-light me-3" href="{{ url_for('payments.list_payments') }}">Payments</a>
-                <a class="nav-link text-light me-3" href="{{ url_for('notifications.list_notifications') }}">Notifications</a>
+            <button class="navbar-toggler border-0 text-light" type="button" data-bs-toggle="collapse" data-bs-target="#mainNavCollapse">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse flex-grow-0" id="mainNavCollapse">
+                <div class="d-flex flex-column flex-lg-row align-items-lg-center gap-1 gap-lg-2 mt-3 mt-lg-0">
+                    <a class="nav-link" href="{{ url_for('customers.list_customers') }}">Customer</a>
+                    <a class="nav-link" href="{{ url_for('buyers.list_buyers') }}">Buyer</a>
+                    <a class="nav-link" href="{{ url_for('accounting.dashboard') }}">Accounting</a>
+                    <a class="nav-link me-lg-2" href="{{ url_for('about.index') }}">About Us</a>
 
-                <div class="dropdown me-3">
-                    <a
-                        class="nav-link text-light dropdown-toggle"
-                        href="#" id="buyersNavDropdown" role="button"
-                        data-bs-toggle="dropdown" aria-expanded="false"
-                    >Buyers &amp; Accounts</a>
-                    <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="buyersNavDropdown">
-                        <li><a class="dropdown-item" href="{{ url_for('buyers.list_buyers') }}">Buyers</a></li>
-                        <li><a class="dropdown-item" href="{{ url_for('buyer_sales.list_sales') }}">Buyer Sales</a></li>
-                        <li><a class="dropdown-item" href="{{ url_for('buyer_invoices.list_invoices') }}">Buyer Invoices</a></li>
-                        <li><a class="dropdown-item" href="{{ url_for('buyer_invoices.dunning_log') }}">Dunning Log</a></li>
-                        <li><hr class="dropdown-divider"></li>
-                        <li><a class="dropdown-item" href="{{ url_for('expenses.list_expenses') }}">Expenses &amp; Income</a></li>
-                        <li><a class="dropdown-item" href="{{ url_for('accounting.dashboard') }}">Accounting Dashboard</a></li>
-                        <li><a class="dropdown-item" href="{{ url_for('accounting.settings') }}">Financial Settings</a></li>
-                    </ul>
+                    <div class="dropdown">
+                        <button
+                            class="nav-avatar-btn dropdown-toggle"
+                            type="button" id="profileMenuButton"
+                            data-bs-toggle="dropdown" aria-expanded="false"
+                        >
+                            {% if session.get('profile_photo') %}
+                                <img
+                                    src="{{ url_for('static', filename=session.get('profile_photo')) }}?v={{ session.get('photo_version', 0) }}"
+                                    alt="{{ session.get('username') }}"
+                                    class="nav-avatar-circle"
+                                    style="object-fit: cover;"
+                                >
+                            {% else %}
+                                <span class="nav-avatar-circle">{{ (session.get('username') or 'A')[0]|upper }}</span>
+                            {% endif %}
+                            <span class="nav-avatar-name d-none d-md-inline">{{ session.get('username') }}</span>
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end nav-avatar-menu" aria-labelledby="profileMenuButton">
+                            <li class="dropdown-header">Signed in as</li>
+                            <li class="signed-in-as">{{ session.get('username') }}</li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="{{ url_for('profile.index') }}">My Profile</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('auth.logout') }}">Logout</a></li>
+                        </ul>
+                    </div>
                 </div>
-
-                <span class="navbar-text text-light me-3">
-                    Signed in as {{ session.get('username') }}
-                </span>
-                <a class="btn btn-outline-light btn-sm" href="{{ url_for('auth.logout') }}">Logout</a>
             </div>
         </div>
     </nav>
@@ -65,14 +74,19 @@
                 <img src="{{ url_for('static', filename='img/logo-mark.svg') }}" alt="OM Dairy">
                 <span class="brand-word">OM Dairy</span>
             </a>
-            <div class="d-flex align-items-center">
-                <a class="nav-link text-light me-3" href="{{ url_for('customer_portal.dashboard') }}">Dashboard</a>
-                <a class="nav-link text-light me-3" href="{{ url_for('customer_portal.milk_entries') }}">My Milk Records</a>
-                <a class="nav-link text-light me-3" href="{{ url_for('customer_portal.payments') }}">My Invoices</a>
-                <span class="navbar-text text-light me-3">
-                    Signed in as {{ session.get('customer_name') }}
-                </span>
-                <a class="btn btn-outline-light btn-sm" href="{{ url_for('customer_portal.logout') }}">Logout</a>
+            <button class="navbar-toggler border-0 text-light" type="button" data-bs-toggle="collapse" data-bs-target="#portalNavCollapse">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse flex-grow-0" id="portalNavCollapse">
+                <div class="d-flex flex-column flex-lg-row align-items-lg-center gap-1 gap-lg-2 mt-3 mt-lg-0">
+                    <a class="nav-link" href="{{ url_for('customer_portal.dashboard') }}">Dashboard</a>
+                    <a class="nav-link" href="{{ url_for('customer_portal.milk_entries') }}">My Milk Records</a>
+                    <a class="nav-link me-lg-2" href="{{ url_for('customer_portal.payments') }}">My Invoices</a>
+                    <span class="navbar-text me-lg-2">
+                        Signed in as {{ session.get('customer_name') }}
+                    </span>
+                    <a class="btn btn-outline-light btn-sm" href="{{ url_for('customer_portal.logout') }}">Logout</a>
+                </div>
             </div>
         </div>
     </nav>
@@ -94,5 +108,6 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    {% block extra_scripts %}{% endblock %}
 </body>
 </html>

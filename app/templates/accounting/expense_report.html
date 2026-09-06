@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+{% block title %}Expense Report - OM Dairy{% endblock %}
+
+{% block content %}
+{% set active = 'expense_report' %}
+<h2 class="mb-3">Expenses &amp; Costs</h2>
+{% include "partials/accounting_nav.html" %}
+{% include "partials/accounting_range_form.html" %}
+
+<div class="row g-3 mb-3">
+    <div class="col-6 col-md-4">
+        <div class="card shadow-sm stat-card accent-copper text-center p-3 h-100">
+            <div class="text-muted small">Milk Purchase Cost</div>
+            <div class="fs-4 fw-bold">&#8377;{{ "%.2f"|format(data.milk_purchase_cost) }}</div>
+            <div class="text-muted small">(net of quality deductions)</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-4">
+        <div class="card shadow-sm stat-card text-center p-3 h-100">
+            <div class="text-muted small">Other Business Expenses</div>
+            <div class="fs-4 fw-bold">&#8377;{{ "%.2f"|format(data.other_expense) }}</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-4">
+        <div class="card shadow-sm stat-card accent-danger text-center p-3 h-100">
+            <div class="text-muted small">Total Cost</div>
+            <div class="fs-4 fw-bold">&#8377;{{ "%.2f"|format(data.total_cost) }}</div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-3">
+    <div class="col-md-6">
+        <div class="card shadow-sm mb-4 h-100">
+            <div class="card-header">Milk Purchase Cost by Customer</div>
+            <div class="table-responsive">
+                <table class="table table-sm mb-0">
+                    <thead class="table-light"><tr><th>Customer</th><th class="text-end">Cost</th></tr></thead>
+                    <tbody>
+                        {% for row in data.by_customer %}
+                        <tr>
+                            <td><a href="{{ url_for('accounting.payable_detail', customer_id=row.customer_id) }}">{{ row.customer_name }}</a></td>
+                            <td class="text-end">&#8377;{{ "%.2f"|format(row.total) }}</td>
+                        </tr>
+                        {% else %}
+                        <tr><td colspan="2" class="text-center text-muted py-3">No milk purchases in this range.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card shadow-sm mb-4 h-100">
+            <div class="card-header">Other Expenses by Category <span class="text-muted small fw-normal">(selected range)</span></div>
+            <div class="table-responsive">
+                <table class="table table-sm mb-0">
+                    <thead class="table-light"><tr><th>Category</th><th class="text-end">Amount</th></tr></thead>
+                    <tbody>
+                        {% for row in data.expense_by_category %}
+                        <tr>
+                            <td>{{ row.category }}</td>
+                            <td class="text-end">&#8377;{{ "%.2f"|format(row.total) }}</td>
+                        </tr>
+                        {% else %}
+                        <tr><td colspan="2" class="text-center text-muted py-3">No expenses recorded in this range.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

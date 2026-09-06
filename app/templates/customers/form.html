@@ -2,6 +2,8 @@
 {% block title %}{{ 'Edit' if mode == 'edit' else 'Add' }} Customer - OM Dairy{% endblock %}
 
 {% block content %}
+{% set active = 'customers' %}
+{% include "partials/customer_nav.html" %}
 <div class="row justify-content-center">
     <div class="col-md-7">
         <div class="card shadow-sm">

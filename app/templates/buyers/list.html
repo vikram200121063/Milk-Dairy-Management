@@ -2,6 +2,8 @@
 {% block title %}Buyers - OM Dairy{% endblock %}
 
 {% block content %}
+{% set active = 'buyers' %}
+{% include "partials/buyer_nav.html" %}
 <div class="d-flex justify-content-between align-items-center mb-3">
     <h2 class="mb-0">Buyers</h2>
     <a href="{{ url_for('buyers.add_buyer') }}" class="btn btn-primary">+ Add Buyer</a>

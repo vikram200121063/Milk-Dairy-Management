@@ -1,0 +1,30 @@
+{# Compact accounting summary for the Buyer/Customer profile pages.
+   Expects `ledger` (from ledger_service.get_entity_ledger) and `detail_url`
+   (the accounting.receivable_detail / accounting.payable_detail link). #}
+{% set is_buyer = ledger.entity_type == 'buyer' %}
+{% set balance = ledger.summary.outstanding_balance %}
+
+<div class="card shadow-sm mb-4">
+    <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <div>
+                <div class="text-muted small">Accounting &ndash; {{ ledger.labels.title }}</div>
+                <div class="fs-3 fw-bold {{ 'text-danger' if balance > 0 else 'text-success' }}">
+                    &#8377;{{ "%.2f"|format(balance) }}
+                    <span class="fs-6 fw-normal text-muted">{{ ledger.labels.balance_label }}</span>
+                </div>
+                <div class="text-muted small mt-1">
+                    Total {{ ledger.labels.debit_label }}: &#8377;{{ "%.2f"|format(ledger.summary.total_debit) }}
+                    &nbsp;&middot;&nbsp;
+                    Total {{ ledger.labels.credit_label }}: &#8377;{{ "%.2f"|format(ledger.summary.total_credit) }}
+                </div>
+                {% if is_buyer and ledger.summary.overdue_count %}
+                    <span class="badge bg-danger mt-2">
+                        {{ ledger.summary.overdue_count }} overdue invoice(s) &ndash; &#8377;{{ "%.2f"|format(ledger.summary.overdue_amount) }}
+                    </span>
+                {% endif %}
+            </div>
+            <a href="{{ detail_url }}" class="btn btn-primary btn-sm">Open Full Accounting Statement &rarr;</a>
+        </div>
+    </div>
+</div>

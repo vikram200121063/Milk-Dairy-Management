@@ -2,6 +2,7 @@ import calendar
 from datetime import datetime, timezone
 
 from app.utils.id_generator import get_next_sequence
+from app.services import ledger_service
 
 
 def get_cycle_boundaries(year, month, cycle_number):
@@ -173,6 +174,9 @@ def update_deductions(db, payment_id, deductions):
             }
         },
     )
+    # Common Accounting module: re-post Dr Accounts Payable / Cr Other Income
+    # for the current deduction amount (0 voids any previous deduction entry).
+    ledger_service.post_customer_deduction(db, payment, deductions)
     return True, None
 
 
@@ -207,4 +211,8 @@ def record_payment(db, payment_id, amount, method, reference, payment_date):
             }
         },
     )
+    # Common Accounting module: auto-post Dr Accounts Payable / Cr Cash/Bank
+    # for THIS installment only (record_payment is cumulative, so each call
+    # is its own real cash event and gets its own permanent ledger pair).
+    ledger_service.post_customer_payment(db, payment, amount, payment_date, method, reference)
     return True, None

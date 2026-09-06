@@ -22,7 +22,7 @@ day never double-charges.
 """
 from datetime import datetime, timedelta, timezone
 
-from app.services import email_service, finance_settings_service
+from app.services import email_service, finance_settings_service, ledger_service
 from app.services.buyer_invoice_service import compute_invoice_status
 from app.utils.id_generator import get_next_sequence
 
@@ -156,6 +156,8 @@ def calculate_and_apply_interest(db, invoice, settings, today):
         "created_at": now,
     }
     db.interest_charges.insert_one(entry)
+    # Common Accounting module: auto-post Dr Accounts Receivable / Cr Interest Income.
+    ledger_service.post_interest_charge(db, entry)
 
     new_total = round(invoice["total_amount"] + interest_amount, 2)
     new_remaining = round(invoice["remaining_amount"] + interest_amount, 2)
@@ -213,6 +215,8 @@ def waive_interest_charge(db, charge_id, waive_amount, note, actor=None):
             }
         },
     )
+    # Common Accounting module: auto-post Dr Interest Income / Cr Accounts Receivable.
+    ledger_service.post_interest_waiver(db, charge, waive_amount, note)
 
     invoice = db.buyer_invoices.find_one({"invoice_id": charge["invoice_id"]})
     if invoice:

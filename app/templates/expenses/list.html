@@ -2,6 +2,8 @@
 {% block title %}Expenses &amp; Income - OM Dairy{% endblock %}
 
 {% block content %}
+{% set active = 'expenses' %}
+{% include "partials/accounting_nav.html" %}
 <div class="d-flex justify-content-between align-items-center mb-3">
     <h2 class="mb-0">Expenses &amp; Other Income</h2>
     <a href="{{ url_for('expenses.add_expense') }}" class="btn btn-primary">+ Add Entry</a>

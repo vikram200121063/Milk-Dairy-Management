@@ -2,6 +2,8 @@
 {% block title %}Buyer Invoices - OM Dairy{% endblock %}
 
 {% block content %}
+{% set active = 'buyer_invoices' %}
+{% include "partials/buyer_nav.html" %}
 <div class="d-flex justify-content-between align-items-center mb-3">
     <h2 class="mb-0">Buyer Invoices</h2>
     <form method="POST" action="{{ url_for('buyer_invoices.run_dunning') }}">

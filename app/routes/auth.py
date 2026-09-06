@@ -35,6 +35,7 @@ def login():
             session.clear()
             session["user_id"] = str(user["_id"])
             session["username"] = user["username"]
+            session["profile_photo"] = user.get("profile_photo")
             flash(f"Welcome back, {user['username']}!", "success")
 
             next_page = request.args.get("next")

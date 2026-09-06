@@ -1,0 +1,72 @@
+{# Shared accounting ledger section.
+   Expects one context variable: `ledger` (from ledger_service.build_ledger).
+   Used by both app/templates/buyers/profile.html and
+   app/templates/customers/profile.html so the two entity types (Buyer =
+   Receivable/Revenue, Customer = Payable/Expense) share one implementation. #}
+{% set is_buyer = ledger.entity_type == 'buyer' %}
+{% set debit_accent = 'accent-marigold' if is_buyer else 'accent-copper' %}
+{% set balance = ledger.summary.outstanding_balance %}
+
+<h5 class="mb-2">
+    Accounting <span class="text-muted small fw-normal">&ndash; {{ ledger.labels.title }}</span>
+    {% if is_buyer and ledger.summary.overdue_count %}
+        <span class="badge bg-danger ms-1">
+            {{ ledger.summary.overdue_count }} overdue invoice(s) &ndash; &#8377;{{ "%.2f"|format(ledger.summary.overdue_amount) }}
+        </span>
+    {% endif %}
+</h5>
+
+<div class="row g-3 mb-3">
+    <div class="col-6 col-md-3">
+        <div class="card shadow-sm stat-card {{ debit_accent }} text-center p-3 h-100">
+            <div class="text-muted small">Total {{ ledger.labels.debit_label }}</div>
+            <div class="fs-5 fw-bold">&#8377;{{ "%.2f"|format(ledger.summary.total_debit) }}</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card shadow-sm stat-card accent-success text-center p-3 h-100">
+            <div class="text-muted small">Total {{ ledger.labels.credit_label }}</div>
+            <div class="fs-5 fw-bold">&#8377;{{ "%.2f"|format(ledger.summary.total_credit) }}</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-6">
+        <div class="card shadow-sm stat-card {{ 'accent-danger' if balance > 0 else 'accent-success' }} text-center p-3 h-100 d-flex justify-content-center">
+            <div class="text-muted small">{{ ledger.labels.balance_label }}</div>
+            <div class="fs-2 fw-bold {{ 'text-danger' if balance > 0 else 'text-success' }}">
+                &#8377;{{ "%.2f"|format(balance) }}
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card shadow-sm mb-4">
+    <div class="card-header">Ledger <span class="text-muted small fw-normal">(most recent first, with running balance)</span></div>
+    <div class="table-responsive">
+        <table class="table table-sm mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>Date</th>
+                    <th>Type</th>
+                    <th>Description</th>
+                    <th class="text-end">{{ ledger.labels.debit_label }} (Dr)</th>
+                    <th class="text-end">{{ ledger.labels.credit_label }} (Cr)</th>
+                    <th class="text-end">Balance</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for e in ledger.entries %}
+                <tr>
+                    <td class="text-nowrap">{{ e.date.strftime('%d %b %Y') if e.date else '\u2014' }}</td>
+                    <td>{{ e.label }}</td>
+                    <td class="small text-muted">{{ e.description }}</td>
+                    <td class="text-end text-danger">{{ "&#8377;%.2f"|format(e.debit)|safe if e.debit else '' }}</td>
+                    <td class="text-end text-success">{{ "&#8377;%.2f"|format(e.credit)|safe if e.credit else '' }}</td>
+                    <td class="text-end fw-semibold">&#8377;{{ "%.2f"|format(e.balance) }}</td>
+                </tr>
+                {% else %}
+                <tr><td colspan="6" class="text-center text-muted py-3">No transactions recorded yet.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>

@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% block title %}Cash & Bank - OM Dairy{% endblock %}
+
+{% block content %}
+{% set active = 'cash_bank' %}
+<h2 class="mb-3">Cash &amp; Bank</h2>
+{% include "partials/accounting_nav.html" %}
+{% include "partials/accounting_range_form.html" %}
+
+<div class="row g-3 mb-3">
+    <div class="col-6 col-md-3">
+        <div class="card shadow-sm stat-card accent-success text-center p-3 h-100">
+            <div class="text-muted small">Received (this range)</div>
+            <div class="fs-5 fw-bold">&#8377;{{ "%.2f"|format(summary.received) }}</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card shadow-sm stat-card accent-copper text-center p-3 h-100">
+            <div class="text-muted small">Paid Out (this range)</div>
+            <div class="fs-5 fw-bold">&#8377;{{ "%.2f"|format(summary.paid) }}</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card shadow-sm stat-card text-center p-3 h-100">
+            <div class="text-muted small">Net for Range</div>
+            <div class="fs-5 fw-bold {{ 'text-danger' if summary.net_for_range < 0 else 'text-success' }}">&#8377;{{ "%.2f"|format(summary.net_for_range) }}</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card shadow-sm stat-card accent-marigold text-center p-3 h-100">
+            <div class="text-muted small">Current Balance (all-time)</div>
+            <div class="fs-5 fw-bold {{ 'text-danger' if summary.balance < 0 else '' }}">&#8377;{{ "%.2f"|format(summary.balance) }}</div>
+        </div>
+    </div>
+</div>
+
+<div class="card shadow-sm">
+    <div class="card-header">Transactions <span class="text-muted small fw-normal">(most recent first, with running balance)</span></div>
+    <div class="table-responsive">
+        <table class="table table-sm mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>Date</th>
+                    <th>Type</th>
+                    <th>Party</th>
+                    <th>Description</th>
+                    <th class="text-end">In</th>
+                    <th class="text-end">Out</th>
+                    <th class="text-end">Balance</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for t in transactions %}
+                <tr>
+                    <td class="text-nowrap">{{ t.date.strftime('%d %b %Y') if t.date else '\u2014' }}</td>
+                    <td>{{ t.transaction_type }}</td>
+                    <td>{{ t.entity_name or '\u2014' }}</td>
+                    <td class="small text-muted">{{ t.description }}</td>
+                    <td class="text-end text-success">{{ "&#8377;%.2f"|format(t.amount)|safe if t.direction == 'In' else '' }}</td>
+                    <td class="text-end text-danger">{{ "&#8377;%.2f"|format(t.amount)|safe if t.direction == 'Out' else '' }}</td>
+                    <td class="text-end fw-semibold">&#8377;{{ "%.2f"|format(t.balance) }}</td>
+                </tr>
+                {% else %}
+                <tr><td colspan="7" class="text-center text-muted py-3">No cash/bank transactions in this range.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

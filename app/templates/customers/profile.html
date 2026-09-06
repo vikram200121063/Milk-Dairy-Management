@@ -2,6 +2,8 @@
 {% block title %}{{ customer.name }} - OM Dairy{% endblock %}
 
 {% block content %}
+{% set active = 'customers' %}
+{% include "partials/customer_nav.html" %}
 <div class="d-flex justify-content-between align-items-start mb-3">
     <div>
         <h2 class="mb-0">{{ customer.name }}</h2>
@@ -44,9 +46,7 @@
     </div>
 </div>
 
-<div class="alert alert-light border">
-    Milk collection history, totals, and pending payment info will appear here starting in Phase 4.
-</div>
+{% include "partials/accounting_summary.html" %}
 
 <a href="{{ url_for('customers.list_customers') }}" class="btn btn-outline-secondary">← Back to Customers</a>
 {% endblock %}

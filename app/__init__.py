@@ -104,6 +104,14 @@ def create_app():
     db.interest_charges.create_index("invoice_id")
     db.interest_charges.create_index("status")
 
+    # --- Common Accounting module: the general ledger ---
+    db.ledger_entries.create_index("entry_id", unique=True)
+    db.ledger_entries.create_index([("source_collection", 1), ("source_id", 1)])
+    db.ledger_entries.create_index("account")
+    db.ledger_entries.create_index([("entity_type", 1), ("entity_id", 1)])
+    db.ledger_entries.create_index("date")
+    db.ledger_entries.create_index("transaction_id")
+
     # --- Session cookie security ---
     # HTTPONLY: JavaScript can't read the cookie (mitigates XSS cookie theft)
     # SAMESITE: cookie isn't sent on cross-site requests (mitigates CSRF)
@@ -126,6 +134,8 @@ def create_app():
     from app.routes.buyer_invoices import buyer_invoices_bp
     from app.routes.expenses import expenses_bp
     from app.routes.accounting import accounting_bp
+    from app.routes.about import about_bp
+    from app.routes.profile import profile_bp
 
     app.register_blueprint(auth_bp)
     app.register_blueprint(dashboard_bp)
@@ -141,6 +151,8 @@ def create_app():
     app.register_blueprint(buyer_invoices_bp)
     app.register_blueprint(expenses_bp)
     app.register_blueprint(accounting_bp)
+    app.register_blueprint(about_bp)
+    app.register_blueprint(profile_bp)
 
     # --- Root route: send visitors to the right place based on who (if
     # anyone) is logged in - admin staff, a customer, or a fresh visitor ---
@@ -236,6 +248,102 @@ def create_app():
             f"Reminders sent: {stats['reminders_sent']}. "
             f"Interest applied to {stats['interest_applied']} invoice(s) "
             f"(\u20b9{stats['interest_total']:.2f} total)."
+        )
+
+    # --- CLI command: flask backfill-ledger ---
+    # One-time migration for the common Accounting module: generates
+    # ledger_entries for every buyer sale, buyer payment, interest charge/
+    # waiver, milk entry, customer payment, customer deduction, and manual
+    # expense/income entry that already existed before this feature was
+    # added. Safe to run more than once - every posting here is either
+    # keyed by the transaction's own permanent id (buyer sales, buyer
+    # payments, interest charges, milk entries, expenses - exactly the
+    # same id the live hooks use, so backfilling twice just replaces
+    # itself with identical figures) or, for the two fields that only
+    # ever store a single CUMULATIVE value with no per-installment history
+    # (a payment cycle's amount_paid, an interest charge's waived_amount),
+    # a dedicated "-backfill" id that is separate from the ids new live
+    # payments/waivers get - so re-running this after real usage has
+    # started won't double-count new activity, but also won't retroactively
+    # capture it (new activity is already covered by the live hooks).
+    # Run this once, right after deploying the Accounting module.
+    @app.cli.command("backfill-ledger")
+    def backfill_ledger():
+        """One-time: post ledger entries for all pre-existing transactions."""
+        from app.services import ledger_service as L
+
+        counts = {
+            "sales": 0, "buyer_payments": 0, "interest_charges": 0, "interest_waivers": 0,
+            "milk_entries": 0, "customer_payments": 0, "deductions": 0, "expenses": 0,
+        }
+
+        for sale in db.buyer_sales.find():
+            L.post_buyer_sale(db, sale)
+            counts["sales"] += 1
+
+        for payment in db.buyer_payments.find():
+            L.post_buyer_payment(db, payment)
+            counts["buyer_payments"] += 1
+
+        for charge in db.interest_charges.find():
+            L.post_interest_charge(db, charge)
+            counts["interest_charges"] += 1
+            waived = charge.get("waived_amount", 0.0)
+            if waived:
+                L.post_transaction(
+                    db,
+                    source_collection="interest_charges",
+                    source_id=f"{charge['charge_id']}-waiver-backfill",
+                    transaction_type="Interest Waived",
+                    date=charge.get("waived_at") or charge["calculation_date"],
+                    debit_account=L.INTEREST_INCOME,
+                    credit_account=L.ACCOUNTS_RECEIVABLE,
+                    amount=waived,
+                    entity_type="buyer",
+                    entity_id=charge["buyer_id"],
+                    entity_name=charge["buyer_name"],
+                    description=f"Waiver on invoice {charge.get('invoice_id', '')} (backfilled)"
+                    + (f" \u2013 {charge['note']}" if charge.get("note") else ""),
+                )
+                counts["interest_waivers"] += 1
+
+        for entry in db.milk_entries.find():
+            L.post_milk_purchase(db, entry, str(entry["_id"]))
+            counts["milk_entries"] += 1
+
+        for payment in db.payments.find():
+            amount_paid = payment.get("amount_paid", 0.0)
+            if amount_paid:
+                L.post_transaction(
+                    db,
+                    source_collection="payments",
+                    source_id=f"{payment['payment_id']}-backfill",
+                    transaction_type="Payment Made",
+                    date=payment.get("payment_date") or payment.get("updated_at"),
+                    debit_account=L.ACCOUNTS_PAYABLE,
+                    credit_account=L.CASH_BANK,
+                    amount=amount_paid,
+                    entity_type="customer",
+                    entity_id=payment["customer_id"],
+                    entity_name=payment["customer_name"],
+                    description=f"{payment.get('payment_method') or 'Payment'} \u2013 "
+                    f"cycle {payment.get('payment_period', '')} (backfilled)",
+                )
+                counts["customer_payments"] += 1
+            if payment.get("deductions"):
+                L.post_customer_deduction(db, payment, payment["deductions"])
+                counts["deductions"] += 1
+
+        for expense in db.expenses.find():
+            L.post_expense_entry(db, expense)
+            counts["expenses"] += 1
+
+        click.echo(
+            "Ledger backfill complete: "
+            f"{counts['sales']} sale(s), {counts['buyer_payments']} buyer payment(s), "
+            f"{counts['interest_charges']} interest charge(s), {counts['interest_waivers']} waiver(s), "
+            f"{counts['milk_entries']} milk entrie(s), {counts['customer_payments']} customer payment(s), "
+            f"{counts['deductions']} deduction(s), {counts['expenses']} expense/income entrie(s)."
         )
 
     return app

@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block title %}My Profile - OM Dairy{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <h2 class="mb-4">My Profile</h2>
+        <div class="card shadow-sm">
+            <div class="card-body p-4 text-center">
+                {% if session.get('profile_photo') %}
+                    <img
+                        src="{{ url_for('static', filename=session.get('profile_photo')) }}?v={{ session.get('photo_version', 0) }}"
+                        alt="{{ user.username }}"
+                        class="rounded-circle mb-3"
+                        style="width: 128px; height: 128px; object-fit: cover; border: 3px solid var(--color-surface-tint);"
+                    >
+                {% else %}
+                    <div
+                        class="rounded-circle mb-3 mx-auto d-flex align-items-center justify-content-center"
+                        style="width: 128px; height: 128px; font-size: 2.4rem; font-family: var(--font-display);
+                               font-weight: 700; color: #fff; background: linear-gradient(135deg, #22D3EE, #4F46E5);"
+                    >
+                        {{ (user.username or "A")[0]|upper }}
+                    </div>
+                {% endif %}
+
+                <h5 class="mb-1">{{ user.username }}</h5>
+                <p class="text-muted small mb-4">Signed in to OM Dairy</p>
+
+                <form method="POST" enctype="multipart/form-data" class="text-start mb-3">
+                    <input type="hidden" name="action" value="upload">
+                    <label class="form-label">Upload a new photo</label>
+                    <input type="file" name="photo" accept=".png,.jpg,.jpeg,.webp" class="form-control mb-2" required>
+                    <div class="form-text mb-3">PNG, JPG, or WEBP. It'll be cropped to a square automatically.</div>
+                    <button type="submit" class="btn btn-primary w-100">Save Photo</button>
+                </form>
+
+                {% if session.get('profile_photo') %}
+                <form method="POST">
+                    <input type="hidden" name="action" value="remove">
+                    <button type="submit" class="btn btn-outline-danger btn-sm">Remove Photo</button>
+                </form>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

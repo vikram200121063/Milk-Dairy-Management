@@ -1,180 +1,224 @@
 {% extends "base.html" %}
-{% block title %}Accounting Dashboard - OM Dairy{% endblock %}
+{% block title %}Accounting - OM Dairy{% endblock %}
+{% block body_class %}acct-page{% endblock %}
+
+{% block extra_head %}
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@600;700;800&display=swap" rel="stylesheet">
+<link href="{{ url_for('static', filename='css/accounting_dashboard.css') }}" rel="stylesheet">
+{% endblock %}
 
 {% block content %}
-<div class="d-flex justify-content-between align-items-center mb-3">
-    <h2 class="mb-0">Accounting Dashboard</h2>
-    <a href="{{ url_for('accounting.settings') }}" class="btn btn-outline-secondary btn-sm">Financial Settings</a>
-</div>
+{% set active = 'dashboard' %}
+{% include "partials/accounting_nav.html" %}
 
-<div class="card shadow-sm mb-4">
-    <div class="card-body">
-        <form method="GET" class="row g-2 align-items-end">
-            <div class="col-sm-3">
-                <label class="form-label small mb-1">Range</label>
-                <select name="range" id="range-select" class="form-select" onchange="toggleCustom(this.value)">
-                    {% for value, label in range_choices %}
-                    <option value="{{ value }}" {% if data.range_type == value %}selected{% endif %}>{{ label }}</option>
-                    {% endfor %}
-                </select>
-            </div>
-            <div class="col-sm-3 custom-range-field {{ 'd-none' if data.range_type != 'custom' }}">
-                <label class="form-label small mb-1">From</label>
-                <input type="date" name="from" class="form-control" value="{{ custom_from }}" max="{{ today }}">
-            </div>
-            <div class="col-sm-3 custom-range-field {{ 'd-none' if data.range_type != 'custom' }}">
-                <label class="form-label small mb-1">To</label>
-                <input type="date" name="to" class="form-control" value="{{ custom_to }}" max="{{ today }}">
-            </div>
-            <div class="col-sm-3">
-                <button type="submit" class="btn btn-primary w-100">Apply</button>
-            </div>
-        </form>
-        <div class="text-muted small mt-2">Showing figures for: <strong>{{ data.range_label }}</strong></div>
-    </div>
-</div>
+{% set total_expenses = data.milk_purchase_cost + data.other_expenses %}
+{% set ar = data.outstanding_receivables %}
+{% set ap = data.outstanding_payables %}
+{% set balance_scale = [ar, ap, 1] | max %}
 
-<h5 class="mb-2">Profit &amp; Loss <span class="text-muted small fw-normal">(accrual basis \u2013 for selected range)</span></h5>
-<div class="row g-3 mb-3">
-    <div class="col-6 col-md-3">
-        <div class="card shadow-sm stat-card text-center p-3 h-100">
-            <div class="text-muted small">Sales Revenue</div>
-            <div class="fs-5 fw-bold">&#8377;{{ "%.2f"|format(data.sales_revenue) }}</div>
-        </div>
-    </div>
-    <div class="col-6 col-md-3">
-        <div class="card shadow-sm stat-card text-center p-3 h-100">
-            <div class="text-muted small">Other Income</div>
-            <div class="fs-5 fw-bold">&#8377;{{ "%.2f"|format(data.other_income) }}</div>
-        </div>
-    </div>
-    <div class="col-6 col-md-3">
-        <div class="card shadow-sm stat-card accent-marigold text-center p-3 h-100">
-            <div class="text-muted small">Total Revenue</div>
-            <div class="fs-5 fw-bold">&#8377;{{ "%.2f"|format(data.revenue) }}</div>
-        </div>
-    </div>
-    <div class="col-6 col-md-3">
-        <div class="card shadow-sm stat-card accent-copper text-center p-3 h-100">
-            <div class="text-muted small">Milk Purchase Cost</div>
-            <div class="fs-5 fw-bold">&#8377;{{ "%.2f"|format(data.milk_purchase_cost) }}</div>
-        </div>
-    </div>
-    <div class="col-6 col-md-3">
-        <div class="card shadow-sm stat-card accent-success text-center p-3 h-100">
-            <div class="text-muted small">Gross Profit</div>
-            <div class="fs-5 fw-bold {{ 'text-danger' if data.gross_profit < 0 else '' }}">&#8377;{{ "%.2f"|format(data.gross_profit) }}</div>
-        </div>
-    </div>
-    <div class="col-6 col-md-3">
-        <div class="card shadow-sm stat-card text-center p-3 h-100">
-            <div class="text-muted small">Other Expenses</div>
-            <div class="fs-5 fw-bold">&#8377;{{ "%.2f"|format(data.other_expenses) }}</div>
-        </div>
-    </div>
-    <div class="col-6 col-md-3">
-        <div class="card shadow-sm stat-card accent-danger text-center p-3 h-100">
-            <div class="text-muted small">Interest / Late Charges</div>
-            <div class="fs-5 fw-bold">&#8377;{{ "%.2f"|format(data.interest_charges) }}</div>
-        </div>
-    </div>
-    <div class="col-6 col-md-3">
-        <div class="card shadow-sm stat-card {{ 'accent-success' if data.net_profit >= 0 else 'accent-danger' }} text-center p-3 h-100">
-            <div class="text-muted small">Net Profit / Loss</div>
-            <div class="fs-4 fw-bold {{ 'text-success' if data.net_profit >= 0 else 'text-danger' }}">&#8377;{{ "%.2f"|format(data.net_profit) }}</div>
-        </div>
-    </div>
-</div>
+<div class="acct">
 
-<h5 class="mb-2">Cash Flow <span class="text-muted small fw-normal">(cash basis \u2013 for selected range)</span></h5>
-<div class="row g-3 mb-3">
-    <div class="col-6 col-md-3">
-        <div class="card shadow-sm stat-card accent-success text-center p-3 h-100">
-            <div class="text-muted small">Cash Received</div>
-            <div class="fs-5 fw-bold">&#8377;{{ "%.2f"|format(data.cash_received) }}</div>
+    <!-- ============== Header + range picker ============== -->
+    <div class="acct-head">
+        <div>
+            <span class="acct-eyebrow"><span class="acct-pulse"></span> {{ range_label }}</span>
+            <h1 class="acct-display">Financial Position</h1>
+            <p>Every figure below is posted from the general ledger as sales, collections, and payments happen.</p>
         </div>
-    </div>
-    <div class="col-6 col-md-3">
-        <div class="card shadow-sm stat-card accent-copper text-center p-3 h-100">
-            <div class="text-muted small">Cash Paid (Customers)</div>
-            <div class="fs-5 fw-bold">&#8377;{{ "%.2f"|format(data.cash_paid_customers) }}</div>
-        </div>
-    </div>
-    <div class="col-6 col-md-3">
-        <div class="card shadow-sm stat-card text-center p-3 h-100">
-            <div class="text-muted small">Cash Paid (Expenses)</div>
-            <div class="fs-5 fw-bold">&#8377;{{ "%.2f"|format(data.cash_paid_expenses) }}</div>
-        </div>
-    </div>
-    <div class="col-6 col-md-3">
-        <div class="card shadow-sm stat-card {{ 'accent-success' if data.net_cash_flow >= 0 else 'accent-danger' }} text-center p-3 h-100">
-            <div class="text-muted small">Net Cash Flow</div>
-            <div class="fs-4 fw-bold {{ 'text-success' if data.net_cash_flow >= 0 else 'text-danger' }}">&#8377;{{ "%.2f"|format(data.net_cash_flow) }}</div>
-        </div>
-    </div>
-</div>
-
-<h5 class="mb-2">Snapshot <span class="text-muted small fw-normal">(as of today, independent of the selected range)</span></h5>
-<div class="row g-3 mb-4">
-    <div class="col-6 col-md-3">
-        <div class="card shadow-sm stat-card accent-marigold text-center p-3 h-100">
-            <div class="text-muted small">Buyer Outstanding Receivables</div>
-            <div class="fs-5 fw-bold">&#8377;{{ "%.2f"|format(data.outstanding_receivables) }}</div>
-        </div>
-    </div>
-    <div class="col-6 col-md-3">
-        <div class="card shadow-sm stat-card text-center p-3 h-100">
-            <div class="text-muted small">Customer Outstanding Payables</div>
-            <div class="fs-5 fw-bold">&#8377;{{ "%.2f"|format(data.outstanding_payables) }}</div>
-        </div>
-    </div>
-    <div class="col-6 col-md-3">
-        <div class="card shadow-sm stat-card accent-danger text-center p-3 h-100">
-            <div class="text-muted small">Overdue Invoices</div>
-            <div class="fs-5 fw-bold {{ 'text-danger' if data.overdue.count else '' }}">{{ data.overdue.count }} (&#8377;{{ "%.2f"|format(data.overdue.amount) }})</div>
-        </div>
-    </div>
-    <div class="col-6 col-md-3">
-        <div class="card shadow-sm stat-card accent-danger text-center p-3 h-100">
-            <div class="text-muted small">Interest Outstanding</div>
-            <div class="fs-5 fw-bold">&#8377;{{ "%.2f"|format(data.overdue.interest) }}</div>
-        </div>
-    </div>
-</div>
-
-<div class="card shadow-sm mb-4">
-    <div class="card-header">Expenses by Category <span class="text-muted small fw-normal">(selected range)</span></div>
-    <div class="table-responsive">
-        <table class="table table-sm mb-0">
-            <thead class="table-light">
-                <tr><th>Category</th><th class="text-end">Amount</th></tr>
-            </thead>
-            <tbody>
-                {% for row in data.expense_by_category %}
-                <tr>
-                    <td>{{ row.category }}</td>
-                    <td class="text-end">&#8377;{{ "%.2f"|format(row.total) }}</td>
-                </tr>
-                {% else %}
-                <tr><td colspan="2" class="text-center text-muted py-3">No expenses recorded in this range.</td></tr>
+        <form method="GET" class="acct-range">
+            <select name="range" onchange="acctToggleCustom(this.value)">
+                {% for value, label in range_choices %}
+                <option value="{{ value }}" {% if range_type == value %}selected{% endif %}>{{ label }}</option>
                 {% endfor %}
-            </tbody>
-        </table>
+            </select>
+            <input type="date" name="from" value="{{ custom_from }}" max="{{ today }}"
+                   class="acct-custom-field {{ 'd-none' if range_type != 'custom' }}">
+            <input type="date" name="to" value="{{ custom_to }}" max="{{ today }}"
+                   class="acct-custom-field {{ 'd-none' if range_type != 'custom' }}">
+            <button type="submit">Apply</button>
+        </form>
     </div>
+
+    <!-- ============== Stage: gauge + money flow ============== -->
+    <div class="acct-stage">
+        <div class="acct-panel acct-gauge-card">
+            <div class="acct-gauge-wrap">
+                <svg viewBox="0 0 200 200">
+                    <circle class="acct-gauge-track" cx="100" cy="100" r="82" fill="none" stroke-width="16"/>
+                    <circle id="acct-gauge-arc" cx="100" cy="100" r="82" fill="none" stroke-width="16"
+                            class="acct-gauge-arc"
+                            stroke="{{ '#34D399' if data.net_profit >= 0 else '#F43F5E' }}"
+                            color="{{ '#34D399' if data.net_profit >= 0 else '#F43F5E' }}"/>
+                </svg>
+                <div class="acct-gauge-center">
+                    <div class="acct-gauge-label">{{ 'NET PROFIT' if data.net_profit >= 0 else 'NET LOSS' }}</div>
+                    <div class="acct-gauge-value acct-display">
+                        <span data-count-to="{{ data.net_profit | abs }}" data-decimals="0" data-prefix="&#8377;">&#8377;0</span>
+                    </div>
+                    <div class="acct-gauge-margin" style="color: {{ '#34D399' if data.net_profit >= 0 else '#F43F5E' }}">
+                        {{ margin }}% margin
+                    </div>
+                </div>
+            </div>
+            <div class="acct-muted" style="font-size: 0.78rem;">
+                Share of every rupee earned that the dairy keeps
+            </div>
+        </div>
+
+        <div class="acct-panel acct-flow-card">
+            <div>
+                <h2 class="acct-card-title">Where the money goes</h2>
+                <div class="acct-card-sub">Revenue for {{ range_label }}, split across what it was spent on</div>
+            </div>
+            <div class="acct-flow-canvas" id="acct-flow"></div>
+        </div>
+    </div>
+
+    <!-- ============== 3D tilt tiles ============== -->
+    <div class="acct-tiles">
+        <div class="acct-panel acct-tile t-cyan">
+            <div class="acct-tile-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 15l5-6 4 3 6-8"/><path d="M14 4h5v5"/></svg>
+            </div>
+            <div class="acct-tile-label">Total Revenue</div>
+            <div class="acct-tile-value acct-display"><span data-count-to="{{ data.revenue }}" data-decimals="0" data-prefix="&#8377;">&#8377;0</span></div>
+            <div class="acct-tile-sub">Milk sales, interest &amp; other income</div>
+        </div>
+
+        <div class="acct-panel acct-tile t-rose">
+            <div class="acct-tile-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 9l-5 6-4-3-6 8"/><path d="M10 20H5v-5"/></svg>
+            </div>
+            <div class="acct-tile-label">Total Expenses</div>
+            <div class="acct-tile-value acct-display"><span data-count-to="{{ total_expenses }}" data-decimals="0" data-prefix="&#8377;">&#8377;0</span></div>
+            <div class="acct-tile-sub">Milk purchase cost + running costs</div>
+        </div>
+
+        <div class="acct-panel acct-tile t-emerald">
+            <div class="acct-tile-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="18" height="13" rx="2.5"/><path d="M3 10h18"/><circle cx="16" cy="14.5" r="1.4" fill="currentColor" stroke="none"/></svg>
+            </div>
+            <div class="acct-tile-label">Cash &amp; Bank</div>
+            <div class="acct-tile-value acct-display"><span data-count-to="{{ data.cash_bank_balance }}" data-decimals="0" data-prefix="&#8377;">&#8377;0</span></div>
+            <div class="acct-tile-sub">On hand right now, all-time</div>
+        </div>
+
+        <a href="{{ url_for('buyer_invoices.list_invoices') }}" class="acct-panel acct-tile t-amber">
+            <div class="acct-tile-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5.5l3.5 2"/></svg>
+            </div>
+            <div class="acct-tile-label">Overdue Invoices</div>
+            <div class="acct-tile-value acct-display">{{ data.overdue.count }}</div>
+            <div class="acct-tile-sub">&#8377;{{ "{:,.0f}".format(data.overdue.amount) }} past due</div>
+        </a>
+    </div>
+
+    <!-- ============== 3D bars + balance ============== -->
+    <div class="acct-lower">
+        <div class="acct-panel acct-chart-card">
+            <div class="acct-chart-head">
+                <div>
+                    <h2 class="acct-card-title">Six month trend</h2>
+                    <div class="acct-card-sub">Revenue against total cost, month by month</div>
+                </div>
+                <div class="acct-legend">
+                    <span><i style="background:#818CF8"></i>Revenue</span>
+                    <span><i style="background:#FB7185"></i>Expense</span>
+                </div>
+            </div>
+            {% set peak = (trend | map(attribute='revenue') | list + trend | map(attribute='expense') | list + [1]) | max %}
+            <div class="acct-bars-viewport">
+                <div class="acct-bars">
+                    {% for point in trend %}
+                    <div class="acct-month">
+                        <div class="acct-pair">
+                            <div class="acct-bar b-revenue"
+                                 data-height="{{ ((point.revenue / peak) * 185) | round(0, 'floor') | int }}"
+                                 style="--bar-delay: {{ loop.index0 * 0.08 }}s"
+                                 title="Revenue {{ "{:,.0f}".format(point.revenue) }}"></div>
+                            <div class="acct-bar b-expense"
+                                 data-height="{{ ((point.expense / peak) * 185) | round(0, 'floor') | int }}"
+                                 style="--bar-delay: {{ loop.index0 * 0.08 + 0.05 }}s"
+                                 title="Expense {{ "{:,.0f}".format(point.expense) }}"></div>
+                        </div>
+                        <div class="acct-month-label">{{ point.label }}</div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <div class="acct-panel acct-balance-card">
+            <div>
+                <h2 class="acct-card-title">Owed &amp; owing</h2>
+                <div class="acct-card-sub">Outstanding on both sides, as of today</div>
+            </div>
+            <div class="acct-balance-rows">
+                <a class="acct-balance-row" href="{{ url_for('accounting.receivables') }}">
+                    <div class="acct-balance-top">
+                        <span class="acct-balance-name">Receivable &mdash; buyers owe us</span>
+                        <span class="acct-balance-amt">&#8377;{{ "{:,.0f}".format(ar) }}</span>
+                    </div>
+                    <div class="acct-balance-track">
+                        <div class="acct-balance-fill f-in" data-width="{{ ((ar / balance_scale) * 100) | round(0, 'floor') | int }}"></div>
+                    </div>
+                    <div class="acct-balance-note">
+                        {{ data.overdue.count }} invoice(s) overdue &middot; &#8377;{{ "{:,.0f}".format(data.overdue.amount) }}
+                    </div>
+                </a>
+                <a class="acct-balance-row" href="{{ url_for('accounting.payables') }}">
+                    <div class="acct-balance-top">
+                        <span class="acct-balance-name">Payable &mdash; we owe customers</span>
+                        <span class="acct-balance-amt">&#8377;{{ "{:,.0f}".format(ap) }}</span>
+                    </div>
+                    <div class="acct-balance-track">
+                        <div class="acct-balance-fill f-out" data-width="{{ ((ap / balance_scale) * 100) | round(0, 'floor') | int }}"></div>
+                    </div>
+                    <div class="acct-balance-note">
+                        {{ data.pending_customer_payments.count }} cycle(s) pending &middot; &#8377;{{ "{:,.0f}".format(data.pending_customer_payments.amount) }}
+                    </div>
+                </a>
+            </div>
+            <div class="acct-net">
+                <span class="acct-net-label">Net position</span>
+                <span class="acct-net-value" style="color: {{ '#34D399' if (ar - ap) >= 0 else '#FB7185' }}">
+                    &#8377;{{ "{:,.0f}".format(ar - ap) }}
+                </span>
+            </div>
+        </div>
+    </div>
+
+    <div class="acct-note">
+        <strong>Reading these numbers:</strong> revenue and costs are counted when the sale or collection
+        happens, not when the money moves &ndash; so a buyer settling an old invoice raises Cash &amp; Bank
+        without adding new revenue. Cash &amp; Bank, Receivable, and Payable are live balances as of today,
+        independent of the range selected above.
+    </div>
+
 </div>
 
-<div class="alert alert-light border small">
-    <strong>Note:</strong> Profit &amp; Loss figures are recognized at the time of the sale/purchase (accrual basis).
-    Cash Flow figures reflect only money that actually changed hands in this range. A buyer settling an
-    already-invoiced balance is a cash event, not new revenue; paying a customer for milk already collected
-    is a cash event, not a new expense.
-</div>
+<script type="application/json" id="acct-data">
+{{ {
+    "revenue": data.revenue,
+    "milk_cost": data.milk_purchase_cost,
+    "other_expenses": data.other_expenses,
+    "net_profit": data.net_profit,
+    "margin": margin
+} | tojson }}
+</script>
 
 <script>
-    function toggleCustom(value) {
-        document.querySelectorAll('.custom-range-field').forEach((el) => {
+    function acctToggleCustom(value) {
+        document.querySelectorAll('.acct-custom-field').forEach(function (el) {
             el.classList.toggle('d-none', value !== 'custom');
         });
     }
 </script>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="{{ url_for('static', filename='js/count-up.js') }}"></script>
+<script src="{{ url_for('static', filename='js/accounting_dashboard.js') }}"></script>
 {% endblock %}

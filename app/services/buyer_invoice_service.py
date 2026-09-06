@@ -13,6 +13,7 @@ import calendar
 from datetime import datetime, timezone, timedelta
 
 from app.utils.id_generator import get_next_sequence
+from app.services import ledger_service
 
 PERIOD_1_START_DAY = 1
 PERIOD_1_END_DAY = 15
@@ -194,19 +195,20 @@ def record_buyer_payment(db, invoice_id, amount, method, reference, payment_date
     seq = get_next_sequence(db, "buyer_payment_id")
     payment_id = f"BPAY{seq:05d}"
 
-    db.buyer_payments.insert_one(
-        {
-            "payment_id": payment_id,
-            "invoice_id": invoice_id,
-            "buyer_id": invoice["buyer_id"],
-            "buyer_name": invoice["buyer_name"],
-            "amount": round(amount, 2),
-            "payment_date": payment_date,
-            "payment_method": method,
-            "transaction_reference": reference,
-            "created_at": now,
-        }
-    )
+    payment_doc = {
+        "payment_id": payment_id,
+        "invoice_id": invoice_id,
+        "buyer_id": invoice["buyer_id"],
+        "buyer_name": invoice["buyer_name"],
+        "amount": round(amount, 2),
+        "payment_date": payment_date,
+        "payment_method": method,
+        "transaction_reference": reference,
+        "created_at": now,
+    }
+    db.buyer_payments.insert_one(payment_doc)
+    # Common Accounting module: auto-post Dr Cash/Bank / Cr Accounts Receivable.
+    ledger_service.post_buyer_payment(db, payment_doc)
 
     new_amount_paid = round(invoice["amount_paid"] + amount, 2)
     remaining = max(round(invoice["total_amount"] - new_amount_paid, 2), 0)

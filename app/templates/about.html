@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+{% block title %}About Us - OM Dairy{% endblock %}
+
+{% block extra_head %}
+<style>
+    .about-hero {
+        position: relative;
+        overflow: hidden;
+        border-radius: 22px;
+        padding: 2.4rem 2.2rem;
+        margin-bottom: 1.75rem;
+        background: linear-gradient(120deg, #4338CA 0%, #6D28D9 55%, #0891B2 130%);
+        box-shadow: 0 20px 44px -18px rgba(67, 56, 202, 0.5);
+        color: #fff;
+    }
+    .about-hero::before {
+        content: "";
+        position: absolute; inset: 0;
+        background: radial-gradient(420px 260px at 90% 10%, rgba(255,255,255,0.2), transparent 65%);
+        pointer-events: none;
+    }
+    .about-hero h1 { position: relative; font-size: 2rem; font-weight: 700; margin-bottom: 0.5rem; }
+    .about-hero p { position: relative; color: rgba(255,255,255,0.85); font-size: 1rem; max-width: 640px; margin-bottom: 0; }
+    .about-icon {
+        width: 44px; height: 44px; border-radius: 13px;
+        display: flex; align-items: center; justify-content: center; color: #fff;
+        margin-bottom: 0.9rem;
+    }
+    .about-icon svg { width: 21px; height: 21px; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="about-hero">
+    <h1>Built for the day-to-day of running a dairy</h1>
+    <p>
+        OM Dairy is the operating system behind our milk collection and distribution business &ndash; from
+        the first can collected at the village doorstep each morning, to the invoice a buyer settles weeks
+        later. One place to track it, instead of three notebooks and a calculator.
+    </p>
+</div>
+
+<div class="row g-3 mb-3">
+    <div class="col-md-4">
+        <div class="card shadow-sm p-4 h-100">
+            <div class="about-icon" style="background: linear-gradient(135deg, #22D3EE, #0891B2);">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 2h6l1 4.5c2.2.9 3.7 3 3.7 5.5A6.7 6.7 0 0 1 13 18.7h-2A6.7 6.7 0 0 1 4.3 12c0-2.5 1.5-4.6 3.7-5.5L9 2z"/></svg>
+            </div>
+            <h5>What we collect</h5>
+            <p class="text-muted small mb-0">
+                Twice-daily milk collection from every registered customer, weighed and graded on fat and
+                SNF, priced automatically against our rate chart.
+            </p>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card shadow-sm p-4 h-100">
+            <div class="about-icon" style="background: linear-gradient(135deg, #4F46E5, #7C3AED);">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.5 12.5 12.7 20.3a2 2 0 0 1-2.8 0l-6.2-6.2a2 2 0 0 1 0-2.8L11.5 3.5H19a1.5 1.5 0 0 1 1.5 1.5v7.5z"/></svg>
+            </div>
+            <h5>Who we supply</h5>
+            <p class="text-muted small mb-0">
+                Bulk milk sold on to our buyers &ndash; hotels, sweet shops, and processing plants &ndash; billed
+                on a half-month cycle with automatic reminders if a payment runs late.
+            </p>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card shadow-sm p-4 h-100">
+            <div class="about-icon" style="background: linear-gradient(135deg, #34D399, #059669);">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V10M11 20V4M18 20v-7"/></svg>
+            </div>
+            <h5>What this app does</h5>
+            <p class="text-muted small mb-0">
+                Keeps the books straight: what every customer is owed, what every buyer owes us, and the
+                real cash position &ndash; all posted automatically as the day's entries come in.
+            </p>
+        </div>
+    </div>
+</div>
+
+<div class="card shadow-sm p-4">
+    <h5 class="mb-3">Get in touch</h5>
+    <div class="row g-3">
+        <div class="col-sm-4">
+            <div class="text-muted small">Registered office</div>
+            <div class="fw-semibold">Village Khejroli, Rajasthan, India</div>
+        </div>
+        <div class="col-sm-4">
+            <div class="text-muted small">Phone</div>
+            <div class="fw-semibold">+91 90000 00000</div>
+        </div>
+        <div class="col-sm-4">
+            <div class="text-muted small">Email</div>
+            <div class="fw-semibold">contact@omdairy.example</div>
+        </div>
+    </div>
+    <div class="text-muted small mt-3">
+        Placeholder contact details &ndash; swap these for your dairy's real address, phone, and email.
+    </div>
+</div>
+{% endblock %}
