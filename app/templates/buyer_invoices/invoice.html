@@ -1,0 +1,288 @@
+{% extends "base.html" %}
+{% block title %}Invoice {{ invoice.invoice_id }} - {{ invoice.buyer_name }}{% endblock %}
+
+{% block content %}
+<style>
+    @media print {
+        .no-print { display: none !important; }
+        body { background: white; }
+        .invoice-sheet { border: none !important; box-shadow: none !important; }
+    }
+
+    .invoice-sheet {
+        background: #fff;
+        border-radius: var(--radius-lg);
+        box-shadow: var(--shadow-soft);
+        overflow: hidden;
+    }
+    .invoice-header {
+        background: var(--color-forest-dark);
+        color: var(--color-cream);
+        padding: 28px 32px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 20px;
+        flex-wrap: wrap;
+    }
+    .invoice-header .brand {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+    }
+    .invoice-header .brand img {
+        width: 52px;
+        height: 52px;
+        flex-shrink: 0;
+    }
+    .invoice-header .brand h2 {
+        font-family: var(--font-display);
+        color: var(--color-cream);
+        margin: 0 0 2px 0;
+        font-size: 1.5rem;
+    }
+    .invoice-header .brand .meta {
+        color: var(--color-cream-alt);
+        font-size: 0.85rem;
+        line-height: 1.4;
+    }
+    .invoice-header .invoice-id {
+        text-align: right;
+    }
+    .invoice-header .invoice-id .label {
+        font-family: var(--font-display);
+        font-weight: 700;
+        font-size: 1.6rem;
+        color: var(--color-marigold);
+        letter-spacing: 1px;
+    }
+    .invoice-header .invoice-id .meta {
+        color: var(--color-cream-alt);
+        font-size: 0.85rem;
+    }
+    .invoice-accent-bar {
+        height: 4px;
+        background: var(--color-marigold);
+    }
+    .invoice-meta-strip {
+        background: var(--color-cream-alt);
+        border-bottom: 1px solid var(--color-border);
+        display: flex;
+        flex-wrap: wrap;
+    }
+    .invoice-meta-strip .col {
+        flex: 1 1 220px;
+        padding: 18px 24px;
+        border-right: 1px solid var(--color-border);
+    }
+    .invoice-meta-strip .col:last-child {
+        border-right: none;
+    }
+    .invoice-meta-strip .col-label {
+        font-size: 0.72rem;
+        font-weight: 700;
+        letter-spacing: 0.06em;
+        color: var(--color-ink-muted);
+        text-transform: uppercase;
+        margin-bottom: 6px;
+    }
+    .invoice-meta-strip .col-primary {
+        font-weight: 600;
+        color: var(--color-ink);
+        margin-bottom: 2px;
+    }
+    .invoice-meta-strip .col-secondary {
+        font-size: 0.85rem;
+        color: var(--color-ink-muted);
+    }
+    .invoice-body {
+        padding: 28px 32px 32px;
+    }
+    .invoice-body h5 {
+        font-family: var(--font-display);
+        color: var(--color-forest-dark);
+        margin-bottom: 14px;
+    }
+    .invoice-table thead th {
+        background: var(--color-forest-dark);
+        color: var(--color-cream);
+        border-color: var(--color-forest-dark);
+        font-size: 0.85rem;
+        font-weight: 600;
+    }
+    .invoice-table tbody tr:nth-child(even) {
+        background: var(--color-cream-alt);
+    }
+    .invoice-table td, .invoice-table th {
+        border-color: var(--color-border);
+    }
+    .invoice-summary {
+        max-width: 380px;
+        margin-left: auto;
+    }
+    .invoice-summary td {
+        border-color: var(--color-border);
+        padding: 8px 4px;
+    }
+    .invoice-summary tr.final-row td {
+        background: var(--color-cream-alt);
+        font-weight: 700;
+        color: var(--color-forest-dark);
+        border-top: 2px solid var(--color-forest-dark);
+    }
+    .invoice-summary tr.remaining-row td {
+        font-weight: 700;
+    }
+    .invoice-footer {
+        text-align: center;
+        color: var(--color-ink-muted);
+        border-top: 1px solid var(--color-border);
+        padding-top: 16px;
+        margin-top: 24px;
+    }
+    .invoice-footer .thanks {
+        font-family: var(--font-display);
+        font-style: italic;
+        font-size: 1rem;
+        margin-bottom: 4px;
+    }
+    .invoice-footer .fine-print {
+        font-size: 0.75rem;
+    }
+    .status-pill {
+        display: inline-block;
+        padding: 6px 16px;
+        border-radius: 999px;
+        font-size: 0.8rem;
+        font-weight: 700;
+        letter-spacing: 0.03em;
+        text-transform: uppercase;
+        border: 1px solid transparent;
+    }
+    .status-pill.paid {
+        background: var(--color-success-soft);
+        color: var(--color-success);
+        border-color: var(--color-success);
+    }
+    .status-pill.partial {
+        background: var(--color-warning-soft);
+        color: var(--color-marigold-dark);
+        border-color: var(--color-marigold-dark);
+    }
+    .status-pill.overdue, .status-pill.unpaid {
+        background: var(--color-danger-soft);
+        color: var(--color-danger);
+        border-color: var(--color-danger);
+    }
+</style>
+
+<div class="no-print d-flex justify-content-between align-items-center mb-3">
+    <a href="{{ back_url or url_for('buyer_invoices.detail', invoice_id=invoice.invoice_id) }}" class="btn btn-outline-secondary">
+        &larr; Back
+    </a>
+    <div>
+        <form method="POST" action="{{ url_for('buyer_invoices.notify', invoice_id=invoice.invoice_id) }}" class="d-inline">
+            <button type="submit" class="btn btn-outline-secondary">&#128231; Email Invoice</button>
+        </form>
+        <button onclick="window.print()" class="btn btn-outline-primary">&#128424;&#65039; Print</button>
+        <a href="{{ pdf_url or url_for('buyer_invoices.invoice_pdf', invoice_id=invoice.invoice_id) }}" class="btn btn-primary">
+            &#11015;&#65039; Download PDF
+        </a>
+    </div>
+</div>
+
+<div class="invoice-sheet">
+    <div class="invoice-header">
+        <div class="brand">
+            <img src="{{ url_for('static', filename='img/logo-mark.svg') }}" alt="{{ dairy.name }} logo">
+            <div>
+                <h2>{{ dairy.name }}</h2>
+                <div class="meta">{{ dairy.address }}</div>
+                <div class="meta">Contact: {{ dairy.contact }}</div>
+            </div>
+        </div>
+        <div class="invoice-id">
+            <div class="label">{{ 'TAX INVOICE' if invoice.tax_amount else 'INVOICE' }}</div>
+            <div class="meta">No. {{ invoice.invoice_id }}</div>
+            <div class="meta">{{ invoice.invoice_date.strftime('%d %b %Y') }}</div>
+        </div>
+    </div>
+    <div class="invoice-accent-bar"></div>
+
+    <div class="invoice-meta-strip">
+        <div class="col">
+            <div class="col-label">Billed To</div>
+            <div class="col-primary">{{ buyer.company_name if buyer else invoice.buyer_name }}</div>
+            <div class="col-secondary">Buyer ID: {{ invoice.buyer_id }}</div>
+            {% if buyer and buyer.gst_number %}<div class="col-secondary">GSTIN: {{ buyer.gst_number }}</div>{% endif %}
+        </div>
+        <div class="col">
+            <div class="col-label">Billing Period</div>
+            <div class="col-primary">{{ invoice.billing_period }}</div>
+            <div class="col-secondary">{{ invoice.period_start.strftime('%d %b') }} &ndash; {{ invoice.period_end.strftime('%d %b %Y') }}</div>
+            <div class="col-secondary">Due: {{ invoice.due_date.strftime('%d %b %Y') }}</div>
+        </div>
+        <div class="col">
+            <div class="col-label">Status</div>
+            {% if invoice.status == 'Paid' %}
+                <span class="status-pill paid">Paid</span>
+            {% elif invoice.status == 'Partially Paid' %}
+                <span class="status-pill partial">Partially Paid</span>
+            {% elif invoice.status == 'Overdue' %}
+                <span class="status-pill overdue">Overdue &middot; {{ invoice.overdue_days }}d</span>
+            {% else %}
+                <span class="status-pill unpaid">Unpaid</span>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="invoice-body">
+        <h5>Milk Sale Details</h5>
+        <table class="table table-bordered table-sm invoice-table">
+            <thead>
+                <tr>
+                    <th>Date</th><th>Type</th><th>Qty (L)</th>
+                    <th>Rate (&#8377;)</th><th>Gross (&#8377;)</th><th>Tax (&#8377;)</th><th>Other (&#8377;)</th><th>Total (&#8377;)</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for s in sales %}
+                <tr>
+                    <td>{{ s.sale_date.strftime('%d %b %Y') }}</td>
+                    <td>{{ s.milk_type }}</td>
+                    <td>{{ "%.2f"|format(s.quantity) }}</td>
+                    <td>{{ "%.2f"|format(s.rate_per_litre) }}</td>
+                    <td>{{ "%.2f"|format(s.gross_amount) }}</td>
+                    <td>{{ "%.2f"|format(s.tax_amount) }}</td>
+                    <td>{{ "%.2f"|format(s.other_charges) }}</td>
+                    <td>{{ "%.2f"|format(s.total_amount) }}</td>
+                </tr>
+                {% else %}
+                <tr><td colspan="8" class="text-center text-muted">No milk sales in this billing period.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        {% set net_interest = (invoice.interest_charged - invoice.interest_waived) %}
+        <table class="table table-sm invoice-summary">
+            <tr><td>Total Quantity</td><td class="text-end">{{ "%.2f"|format(invoice.total_quantity) }} L</td></tr>
+            <tr><td>Gross Amount</td><td class="text-end">&#8377;{{ "%.2f"|format(invoice.gross_amount) }}</td></tr>
+            <tr><td>Tax / GST</td><td class="text-end">+ &#8377;{{ "%.2f"|format(invoice.tax_amount) }}</td></tr>
+            <tr><td>Other Charges</td><td class="text-end">+ &#8377;{{ "%.2f"|format(invoice.other_charges) }}</td></tr>
+            {% if net_interest > 0 %}
+            <tr><td>Late Payment Interest</td><td class="text-end">+ &#8377;{{ "%.2f"|format(net_interest) }}</td></tr>
+            {% endif %}
+            <tr class="final-row"><td>Total Amount</td><td class="text-end">&#8377;{{ "%.2f"|format(invoice.total_amount) }}</td></tr>
+            <tr><td>Amount Paid</td><td class="text-end">&#8377;{{ "%.2f"|format(invoice.amount_paid) }}</td></tr>
+            <tr class="remaining-row" style="color: {{ 'var(--color-success)' if invoice.remaining_amount <= 0 else 'var(--color-danger)' }};">
+                <td>Balance Due</td><td class="text-end">&#8377;{{ "%.2f"|format(invoice.remaining_amount) }}</td>
+            </tr>
+        </table>
+
+        <div class="invoice-footer">
+            <div class="thanks">Thank you for your business with {{ dairy.name }}.</div>
+            <div class="fine-print">This is a system-generated invoice.</div>
+        </div>
+    </div>
+</div>
+{% endblock %}

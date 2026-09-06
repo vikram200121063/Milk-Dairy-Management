@@ -70,6 +70,40 @@ def create_app():
     db.notifications.create_index([("sent_at", -1)])
     db.notifications.create_index("customer_id")
 
+    # --- Buyer Management & Accounting module ---
+    # All new collections/indexes below are additive - nothing above this
+    # block was touched, so the existing Customer Milk Collection &
+    # Payment functionality is unaffected.
+    db.buyers.create_index("buyer_id", unique=True)
+    db.buyers.create_index("gst_number", unique=True, sparse=True)
+    db.buyers.create_index("status")
+
+    db.buyer_sales.create_index("sale_id", unique=True)
+    db.buyer_sales.create_index([("buyer_id", 1), ("sale_date", 1)])
+    db.buyer_sales.create_index("sale_date")
+
+    db.buyer_invoices.create_index("invoice_id", unique=True)
+    db.buyer_invoices.create_index([("buyer_id", 1), ("billing_period", 1)], unique=True)
+    db.buyer_invoices.create_index("status")
+    db.buyer_invoices.create_index("due_date")
+    db.buyer_invoices.create_index("billing_period")
+
+    db.buyer_payments.create_index("payment_id", unique=True)
+    db.buyer_payments.create_index("invoice_id")
+    db.buyer_payments.create_index("buyer_id")
+
+    db.expenses.create_index("expense_id", unique=True)
+    db.expenses.create_index("date")
+    db.expenses.create_index("category")
+    db.expenses.create_index("entry_type")
+
+    db.dunning_records.create_index([("invoice_id", 1), ("sent_at", -1)])
+    db.dunning_records.create_index("record_type")
+
+    db.interest_charges.create_index("charge_id", unique=True)
+    db.interest_charges.create_index("invoice_id")
+    db.interest_charges.create_index("status")
+
     # --- Session cookie security ---
     # HTTPONLY: JavaScript can't read the cookie (mitigates XSS cookie theft)
     # SAMESITE: cookie isn't sent on cross-site requests (mitigates CSRF)
@@ -87,6 +121,11 @@ def create_app():
     from app.routes.payments import payments_bp
     from app.routes.customer_portal import customer_portal_bp
     from app.routes.notifications import notifications_bp
+    from app.routes.buyers import buyers_bp
+    from app.routes.buyer_sales import buyer_sales_bp
+    from app.routes.buyer_invoices import buyer_invoices_bp
+    from app.routes.expenses import expenses_bp
+    from app.routes.accounting import accounting_bp
 
     app.register_blueprint(auth_bp)
     app.register_blueprint(dashboard_bp)
@@ -96,6 +135,12 @@ def create_app():
     app.register_blueprint(payments_bp)
     app.register_blueprint(customer_portal_bp)
     app.register_blueprint(notifications_bp)
+    # --- Buyer Management & Accounting module ---
+    app.register_blueprint(buyers_bp)
+    app.register_blueprint(buyer_sales_bp)
+    app.register_blueprint(buyer_invoices_bp)
+    app.register_blueprint(expenses_bp)
+    app.register_blueprint(accounting_bp)
 
     # --- Root route: send visitors to the right place based on who (if
     # anyone) is logged in - admin staff, a customer, or a fresh visitor ---
@@ -165,5 +210,32 @@ def create_app():
             {"$set": {"password_hash": generate_password_hash(password)}},
         )
         click.echo(f"Password for '{username}' has been reset.")
+
+    # --- CLI command: flask process-dunning ---
+    # Runs the full buyer-invoice dunning cycle (mark overdue -> send the
+    # first reminder -> apply late-payment interest once the grace period
+    # has passed). This project has no background job runner, so wire
+    # this command up to a daily cron job / scheduled task to automate
+    # it; it's also available as a "Run Dunning Check" button in the
+    # Buyer Invoices screen for on-demand use. Safe to run repeatedly.
+    @app.cli.command("process-dunning")
+    def process_dunning():
+        """Run the buyer invoice dunning cycle (overdue -> reminder -> grace period -> interest)."""
+        from app.services import dunning_service
+
+        dairy_info = {
+            "name": Config.DAIRY_NAME,
+            "address": Config.DAIRY_ADDRESS,
+            "contact": Config.DAIRY_CONTACT,
+        }
+        with app.app_context():
+            stats = dunning_service.run_dunning_cycle(db, dairy_info)
+        click.echo(
+            f"Checked {stats['checked']} invoice(s). "
+            f"Newly overdue: {stats['marked_overdue']}. "
+            f"Reminders sent: {stats['reminders_sent']}. "
+            f"Interest applied to {stats['interest_applied']} invoice(s) "
+            f"(\u20b9{stats['interest_total']:.2f} total)."
+        )
 
     return app

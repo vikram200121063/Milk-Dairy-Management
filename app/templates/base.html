@@ -32,6 +32,25 @@
                 <a class="nav-link text-light me-3" href="{{ url_for('rate_config.list_configs') }}">Rate Config</a>
                 <a class="nav-link text-light me-3" href="{{ url_for('payments.list_payments') }}">Payments</a>
                 <a class="nav-link text-light me-3" href="{{ url_for('notifications.list_notifications') }}">Notifications</a>
+
+                <div class="dropdown me-3">
+                    <a
+                        class="nav-link text-light dropdown-toggle"
+                        href="#" id="buyersNavDropdown" role="button"
+                        data-bs-toggle="dropdown" aria-expanded="false"
+                    >Buyers &amp; Accounts</a>
+                    <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="buyersNavDropdown">
+                        <li><a class="dropdown-item" href="{{ url_for('buyers.list_buyers') }}">Buyers</a></li>
+                        <li><a class="dropdown-item" href="{{ url_for('buyer_sales.list_sales') }}">Buyer Sales</a></li>
+                        <li><a class="dropdown-item" href="{{ url_for('buyer_invoices.list_invoices') }}">Buyer Invoices</a></li>
+                        <li><a class="dropdown-item" href="{{ url_for('buyer_invoices.dunning_log') }}">Dunning Log</a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item" href="{{ url_for('expenses.list_expenses') }}">Expenses &amp; Income</a></li>
+                        <li><a class="dropdown-item" href="{{ url_for('accounting.dashboard') }}">Accounting Dashboard</a></li>
+                        <li><a class="dropdown-item" href="{{ url_for('accounting.settings') }}">Financial Settings</a></li>
+                    </ul>
+                </div>
+
                 <span class="navbar-text text-light me-3">
                     Signed in as {{ session.get('username') }}
                 </span>

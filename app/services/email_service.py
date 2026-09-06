@@ -129,3 +129,82 @@ def send_invoice_email(customer, payment, entries, dairy_info):
         attachment=pdf_buffer.getvalue(),
         attachment_filename=f"invoice_{payment['invoice_number']}.pdf",
     )
+
+
+# ---------------------------------------------------------------------------
+# Buyer invoices & dunning (Buyer Management / Accounting module)
+# ---------------------------------------------------------------------------
+
+
+def send_buyer_invoice_email(db, buyer, invoice, dairy_info):
+    """Sends the consolidated invoice email for one buyer billing period, PDF attached."""
+    from app.services import invoice_service, buyer_invoice_service
+
+    sales = buyer_invoice_service.sales_for_invoice(db, invoice)
+    pdf_buffer = invoice_service.generate_buyer_invoice_pdf(dairy_info, invoice, buyer, sales)
+
+    subject = f"Invoice {invoice['invoice_id']} \u2013 {invoice['billing_period']}"
+    html_body = f"""
+    <div style="font-family: Arial, sans-serif; max-width: 480px; margin: auto;">
+      <h2 style="color:#1F4A3A;">Your Invoice is Ready</h2>
+      <p>Dear {buyer['contact_person'] or buyer['company_name']},</p>
+      <p>
+        Your consolidated invoice for <strong>{buyer['company_name']}</strong> covering
+        <strong>{invoice['billing_period']}</strong>
+        ({invoice['period_start'].strftime('%d %b')} &ndash; {invoice['period_end'].strftime('%d %b %Y')})
+        is attached as a PDF.
+      </p>
+      <table style="width:100%; border-collapse: collapse; font-size:14px;">
+        <tr><td style="padding:4px 0; color:#666;">Total Quantity</td><td style="padding:4px 0; text-align:right;">{invoice['total_quantity']:.2f} L</td></tr>
+        <tr><td style="padding:8px 0; border-top:1px solid #ddd;"><strong>Total Amount</strong></td><td style="padding:8px 0; border-top:1px solid #ddd; text-align:right;"><strong>\u20b9{invoice['total_amount']:.2f}</strong></td></tr>
+        <tr><td style="padding:4px 0; color:#666;">Amount Paid</td><td style="padding:4px 0; text-align:right;">\u20b9{invoice['amount_paid']:.2f}</td></tr>
+        <tr><td style="padding:4px 0;"><strong>Balance Due</strong></td><td style="padding:4px 0; text-align:right;"><strong>\u20b9{invoice['remaining_amount']:.2f}</strong></td></tr>
+        <tr><td style="padding:4px 0; color:#666;">Due Date</td><td style="padding:4px 0; text-align:right;">{invoice['due_date'].strftime('%d %b %Y')}</td></tr>
+      </table>
+      <p style="color:#999; font-size:12px; margin-top:24px;">
+        This is an automated message. Please contact the dairy office for any queries.
+      </p>
+    </div>
+    """
+    send_email(
+        buyer["email"],
+        subject,
+        html_body,
+        attachment=pdf_buffer.getvalue(),
+        attachment_filename=f"invoice_{invoice['invoice_id']}.pdf",
+    )
+
+
+def send_dunning_reminder_email(buyer, invoice, dairy_info, overdue_days):
+    """
+    Sends a polite payment reminder for one overdue invoice. Deliberately
+    friendly in tone - this is the FIRST reminder, sent as soon as an
+    invoice goes overdue, before any grace period or interest applies.
+    """
+    subject = f"Payment Reminder \u2013 Invoice {invoice['invoice_id']} ({dairy_info['name']})"
+    html_body = f"""
+    <div style="font-family: Arial, sans-serif; max-width: 480px; margin: auto;">
+      <h2 style="color:#1F4A3A;">Friendly Payment Reminder</h2>
+      <p>Dear {buyer['contact_person'] or buyer['company_name']},</p>
+      <p>
+        This is a gentle reminder that invoice <strong>{invoice['invoice_id']}</strong>
+        for the billing period <strong>{invoice['billing_period']}</strong>, due on
+        <strong>{invoice['due_date'].strftime('%d %b %Y')}</strong>, has not yet been settled.
+        It is currently <strong>{overdue_days} day(s)</strong> past due.
+      </p>
+      <table style="width:100%; border-collapse: collapse; font-size:14px;">
+        <tr><td style="padding:4px 0; color:#666;">Invoice Total</td><td style="padding:4px 0; text-align:right;">\u20b9{invoice['total_amount']:.2f}</td></tr>
+        <tr><td style="padding:4px 0; color:#666;">Amount Paid</td><td style="padding:4px 0; text-align:right;">\u20b9{invoice['amount_paid']:.2f}</td></tr>
+        <tr><td style="padding:8px 0; border-top:1px solid #ddd;"><strong>Balance Due</strong></td><td style="padding:8px 0; border-top:1px solid #ddd; text-align:right;"><strong>\u20b9{invoice['remaining_amount']:.2f}</strong></td></tr>
+      </table>
+      <p>
+        We'd appreciate settling this at your earliest convenience. If payment has already
+        been made, please disregard this message - and thank you for your continued business.
+      </p>
+      <p style="color:#999; font-size:12px; margin-top:24px;">
+        This is an automated message from {dairy_info['name']} ({dairy_info['contact']}).
+        Please contact us directly for any queries about this invoice.
+      </p>
+    </div>
+    """
+    send_email(buyer["email"], subject, html_body)

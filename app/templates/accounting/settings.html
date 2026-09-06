@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% block title %}Financial Settings - OM Dairy{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-7">
+        <h2 class="mb-4">Financial Settings</h2>
+        <div class="card shadow-sm">
+            <div class="card-body p-4">
+                <form method="POST">
+                    <div class="mb-3">
+                        <label class="form-label">Default Payment Terms (days)</label>
+                        <input
+                            type="number" step="1" min="1" name="default_payment_terms_days"
+                            class="form-control" value="{{ settings.default_payment_terms_days }}" required
+                        >
+                        <div class="form-text">
+                            Used for buyers that don't have their own payment terms set. A buyer invoice's due
+                            date is its invoice date plus this many days.
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Grace Period (days)</label>
+                        <input
+                            type="number" step="1" min="0" name="grace_period_days"
+                            class="form-control" value="{{ settings.grace_period_days }}" required
+                        >
+                        <div class="form-text">
+                            How many days after the due date a buyer gets before late payment interest starts
+                            accruing. A reminder email is still sent as soon as the invoice becomes overdue,
+                            regardless of the grace period.
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Late Payment Interest Rate (% per annum)</label>
+                        <input
+                            type="number" step="0.01" min="0" name="interest_rate_annual_percent"
+                            class="form-control" value="{{ settings.interest_rate_annual_percent }}" required
+                        >
+                        <div class="form-text">
+                            Simple interest, applied to the remaining balance of an overdue invoice once its
+                            grace period has passed.
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Default Tax / GST % on New Sales</label>
+                        <input
+                            type="number" step="0.01" min="0" max="100" name="default_tax_percentage"
+                            class="form-control" value="{{ settings.default_tax_percentage }}" required
+                        >
+                        <div class="form-text">
+                            Pre-fills the tax field when recording a new buyer sale. Can always be overridden
+                            per sale.
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary">Save Settings</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

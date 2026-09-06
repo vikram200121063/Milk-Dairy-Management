@@ -1,0 +1,142 @@
+{% extends "base.html" %}
+{% block title %}{{ 'Edit' if mode == 'edit' else 'Record' }} Buyer Sale - OM Dairy{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card shadow-sm">
+            <div class="card-body p-4">
+                <h3 class="mb-4">{{ 'Edit Buyer Sale' if mode == 'edit' else 'Record Milk Sale to Buyer' }}</h3>
+
+                <form method="POST">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Buyer</label>
+                            <select name="buyer_id" class="form-select" required>
+                                <option value="">Select buyer...</option>
+                                {% for b in buyers %}
+                                <option
+                                    value="{{ b.buyer_id }}"
+                                    {% if sale.buyer_id == b.buyer_id %}selected{% endif %}
+                                >{{ b.company_name }} ({{ b.buyer_id }})</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label">Sale Date</label>
+                            <input
+                                type="date" name="sale_date" class="form-control"
+                                value="{{ sale.sale_date or '' }}" max="{{ today }}" required
+                            >
+                        </div>
+
+                        <div class="col-md-4">
+                            <label class="form-label">Milk Type</label>
+                            <select name="milk_type" class="form-select" required>
+                                <option value="">Select type...</option>
+                                {% for t in milk_types %}
+                                <option value="{{ t }}" {% if sale.milk_type == t %}selected{% endif %}>{{ t }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Quality / Grade <span class="text-muted small">(optional)</span></label>
+                            <select name="quality_grade" class="form-select">
+                                {% for g in quality_grades %}
+                                <option value="{{ g }}" {% if sale.quality_grade == g %}selected{% endif %}>{{ g if g else '\u2014' }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Quantity (Litres)</label>
+                            <input
+                                type="number" step="0.01" min="0.01" name="quantity" id="quantity"
+                                class="form-control" value="{{ sale.quantity or '' }}" required
+                            >
+                        </div>
+
+                        <div class="col-md-3">
+                            <label class="form-label">Rate per Litre (&#8377;)</label>
+                            <input
+                                type="number" step="0.01" min="0" name="rate_per_litre" id="rate"
+                                class="form-control" value="{{ sale.rate_per_litre or '' }}" required
+                            >
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Tax / GST %</label>
+                            <input
+                                type="number" step="0.01" min="0" max="100" name="tax_percentage" id="tax_pct"
+                                class="form-control" value="{{ sale.tax_percentage if sale.tax_percentage is not none else default_tax }}"
+                            >
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Other Charges (&#8377;)</label>
+                            <input
+                                type="number" step="0.01" min="0" name="other_charges" id="other_charges"
+                                class="form-control" value="{{ sale.other_charges if sale.other_charges is not none else 0 }}"
+                            >
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Notes <span class="text-muted small">(optional)</span></label>
+                            <input type="text" name="notes" class="form-control" value="{{ sale.notes or '' }}">
+                        </div>
+
+                        <div class="col-12">
+                            <div class="alert alert-secondary mb-0">
+                                <div class="d-flex justify-content-between">
+                                    <span>Gross Amount</span><strong id="gross-preview">&#8377;0.00</strong>
+                                </div>
+                                <div class="d-flex justify-content-between">
+                                    <span>Tax Amount</span><strong id="tax-preview">&#8377;0.00</strong>
+                                </div>
+                                <div class="d-flex justify-content-between border-top pt-1 mt-1">
+                                    <span>Estimated Total</span><strong id="total-preview">&#8377;0.00</strong>
+                                </div>
+                            </div>
+                            <small class="text-muted">
+                                This preview updates as you type. The final amount is calculated by the server when you save.
+                            </small>
+                        </div>
+                    </div>
+
+                    <div class="d-flex gap-2 mt-4">
+                        <button type="submit" class="btn btn-primary">
+                            {{ 'Save Changes' if mode == 'edit' else 'Record Sale' }}
+                        </button>
+                        <a href="{{ url_for('buyer_sales.list_sales') }}" class="btn btn-outline-secondary">Cancel</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const qtyInput = document.getElementById('quantity');
+    const rateInput = document.getElementById('rate');
+    const taxInput = document.getElementById('tax_pct');
+    const otherInput = document.getElementById('other_charges');
+    const grossPreview = document.getElementById('gross-preview');
+    const taxPreview = document.getElementById('tax-preview');
+    const totalPreview = document.getElementById('total-preview');
+
+    function updatePreview() {
+        const qty = parseFloat(qtyInput.value) || 0;
+        const rate = parseFloat(rateInput.value) || 0;
+        const taxPct = parseFloat(taxInput.value) || 0;
+        const other = parseFloat(otherInput.value) || 0;
+
+        const gross = qty * rate;
+        const tax = gross * taxPct / 100;
+        const total = gross + tax + other;
+
+        grossPreview.textContent = '\u20b9' + gross.toFixed(2);
+        taxPreview.textContent = '\u20b9' + tax.toFixed(2);
+        totalPreview.textContent = '\u20b9' + total.toFixed(2);
+    }
+
+    [qtyInput, rateInput, taxInput, otherInput].forEach((el) => el.addEventListener('input', updatePreview));
+    updatePreview();
+</script>
+{% endblock %}

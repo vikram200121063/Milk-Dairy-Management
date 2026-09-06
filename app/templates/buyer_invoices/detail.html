@@ -1,0 +1,256 @@
+{% extends "base.html" %}
+{% block title %}{{ invoice.buyer_name }} - {{ invoice.billing_period }}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-start mb-3 flex-wrap gap-2">
+    <div>
+        <h2 class="mb-0">{{ invoice.buyer_name }}</h2>
+        <span class="text-muted">
+            <code>{{ invoice.invoice_id }}</code> &middot; Period: {{ invoice.billing_period }}
+            &middot; {{ invoice.period_start.strftime('%d %b') }} - {{ invoice.period_end.strftime('%d %b %Y') }}
+            &middot; Due {{ invoice.due_date.strftime('%d %b %Y') }}
+        </span>
+    </div>
+    <div>
+        {% if invoice.status == 'Paid' %}
+            <span class="badge bg-success fs-6 me-2">Paid</span>
+        {% elif invoice.status == 'Partially Paid' %}
+            <span class="badge bg-warning text-dark fs-6 me-2">Partially Paid</span>
+        {% elif invoice.status == 'Overdue' %}
+            <span class="badge bg-danger fs-6 me-2">Overdue &middot; {{ invoice.overdue_days }} day(s)</span>
+        {% else %}
+            <span class="badge bg-secondary fs-6 me-2">Unpaid</span>
+        {% endif %}
+        <a href="{{ url_for('buyer_invoices.invoice_view', invoice_id=invoice.invoice_id) }}" class="btn btn-outline-primary">
+            View Invoice
+        </a>
+        <form method="POST" action="{{ url_for('buyer_invoices.notify', invoice_id=invoice.invoice_id) }}" class="d-inline">
+            <button type="submit" class="btn btn-outline-secondary" title="Email invoice to buyer">
+                &#128231; Email Invoice
+            </button>
+        </form>
+        {% if invoice.status == 'Overdue' %}
+        <form method="POST" action="{{ url_for('buyer_invoices.send_reminder', invoice_id=invoice.invoice_id) }}" class="d-inline">
+            <button type="submit" class="btn btn-outline-danger" title="Send another payment reminder">
+                &#9888; Send Reminder
+            </button>
+        </form>
+        {% endif %}
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-7">
+        <div class="card shadow-sm mb-4">
+            <div class="card-header">Invoice Breakdown</div>
+            <table class="table mb-0">
+                <tr><td>Total Quantity</td><td class="text-end">{{ "%.2f"|format(invoice.total_quantity) }} L</td></tr>
+                <tr><td>Total Sales Entries</td><td class="text-end">{{ invoice.total_entries }}</td></tr>
+                <tr><td>Gross Amount</td><td class="text-end">&#8377;{{ "%.2f"|format(invoice.gross_amount) }}</td></tr>
+                <tr><td>Tax / GST</td><td class="text-end">+ &#8377;{{ "%.2f"|format(invoice.tax_amount) }}</td></tr>
+                <tr><td>Other Charges</td><td class="text-end">+ &#8377;{{ "%.2f"|format(invoice.other_charges) }}</td></tr>
+                {% set net_interest = (invoice.interest_charged - invoice.interest_waived) %}
+                {% if net_interest > 0 %}
+                <tr class="text-danger"><td>Late Payment Interest</td><td class="text-end">+ &#8377;{{ "%.2f"|format(net_interest) }}</td></tr>
+                {% endif %}
+                <tr class="table-light"><td><strong>Total Amount</strong></td><td class="text-end"><strong>&#8377;{{ "%.2f"|format(invoice.total_amount) }}</strong></td></tr>
+                <tr><td>Amount Paid</td><td class="text-end text-success">&#8377;{{ "%.2f"|format(invoice.amount_paid) }}</td></tr>
+                <tr><td><strong>Balance Due</strong></td><td class="text-end text-danger"><strong>&#8377;{{ "%.2f"|format(invoice.remaining_amount) }}</strong></td></tr>
+            </table>
+        </div>
+
+        <div class="card shadow-sm mb-4">
+            <div class="card-header">Milk Sales in this Period</div>
+            <div class="table-responsive">
+                <table class="table mb-0">
+                    <thead class="table-light">
+                        <tr><th>Date</th><th>Type</th><th>Qty (L)</th><th>Rate</th><th>Tax</th><th>Other</th><th>Total</th></tr>
+                    </thead>
+                    <tbody>
+                        {% for s in sales %}
+                        <tr>
+                            <td>{{ s.sale_date.strftime('%d %b') }}</td>
+                            <td>{{ s.milk_type }}</td>
+                            <td>{{ "%.2f"|format(s.quantity) }}</td>
+                            <td>&#8377;{{ "%.2f"|format(s.rate_per_litre) }}</td>
+                            <td>&#8377;{{ "%.2f"|format(s.tax_amount) }}</td>
+                            <td>&#8377;{{ "%.2f"|format(s.other_charges) }}</td>
+                            <td>&#8377;{{ "%.2f"|format(s.total_amount) }}</td>
+                        </tr>
+                        {% else %}
+                        <tr><td colspan="7" class="text-center text-muted py-3">No sales in this period.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="card shadow-sm mb-4">
+            <div class="card-header">Payment History</div>
+            <div class="table-responsive">
+                <table class="table mb-0">
+                    <thead class="table-light">
+                        <tr><th>Date</th><th>Amount</th><th>Method</th><th>Reference</th></tr>
+                    </thead>
+                    <tbody>
+                        {% for p in payments %}
+                        <tr>
+                            <td>{{ p.payment_date.strftime('%d %b %Y') }}</td>
+                            <td>&#8377;{{ "%.2f"|format(p.amount) }}</td>
+                            <td>{{ p.payment_method }}</td>
+                            <td>{{ p.transaction_reference or '\u2014' }}</td>
+                        </tr>
+                        {% else %}
+                        <tr><td colspan="4" class="text-center text-muted py-3">No payments recorded yet.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="card shadow-sm mb-4">
+            <div class="card-header">Dunning &amp; Reminder History</div>
+            <div class="table-responsive">
+                <table class="table table-sm mb-0">
+                    <thead class="table-light">
+                        <tr><th>Sent At</th><th>Type</th><th>Overdue Days</th><th>Status</th><th>Note</th></tr>
+                    </thead>
+                    <tbody>
+                        {% for d in dunning_log %}
+                        <tr>
+                            <td>{{ d.sent_at.strftime('%d %b %Y, %I:%M %p') }}</td>
+                            <td>{{ 'Reminder' if d.record_type == 'Reminder' else 'Invoice Sent' }} {% if d.manual %}<span class="badge bg-light text-muted border">manual</span>{% endif %}</td>
+                            <td>{{ d.overdue_days_at_send }}</td>
+                            <td>
+                                {% if d.status == 'sent' %}<span class="badge bg-success">Sent</span>
+                                {% elif d.status == 'skipped' %}<span class="badge bg-secondary">Skipped</span>
+                                {% else %}<span class="badge bg-danger">Failed</span>{% endif %}
+                            </td>
+                            <td class="small text-muted">{{ d.error or '\u2014' }}</td>
+                        </tr>
+                        {% else %}
+                        <tr><td colspan="5" class="text-center text-muted py-3">No reminders sent yet.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="card shadow-sm mb-4">
+            <div class="card-header">Interest / Late Charges History</div>
+            <div class="table-responsive">
+                <table class="table table-sm mb-0">
+                    <thead class="table-light">
+                        <tr><th>Date</th><th>Days</th><th>Basis</th><th>Rate</th><th>Charged</th><th>Waived</th><th>Status</th><th class="text-end">Actions</th></tr>
+                    </thead>
+                    <tbody>
+                        {% for c in interest_log %}
+                        <tr>
+                            <td>{{ c.calculation_date.strftime('%d %b %Y') }}</td>
+                            <td>{{ c.days_basis }}</td>
+                            <td>&#8377;{{ "%.2f"|format(c.balance_basis) }}</td>
+                            <td>{{ c.annual_rate_percent }}% p.a.</td>
+                            <td>&#8377;{{ "%.2f"|format(c.interest_amount) }}</td>
+                            <td>&#8377;{{ "%.2f"|format(c.waived_amount) }}</td>
+                            <td>
+                                {% if c.status == 'Applied' %}<span class="badge bg-warning text-dark">Applied</span>
+                                {% elif c.status == 'Adjusted' %}<span class="badge bg-info text-dark">Adjusted</span>
+                                {% else %}<span class="badge bg-secondary">Waived</span>{% endif %}
+                            </td>
+                            <td class="text-end">
+                                {% if c.status != 'Waived' %}
+                                <button
+                                    type="button" class="btn btn-sm btn-outline-secondary"
+                                    data-bs-toggle="collapse" data-bs-target="#waive-{{ c.charge_id }}"
+                                >Waive/Adjust</button>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% if c.status != 'Waived' %}
+                        <tr class="collapse" id="waive-{{ c.charge_id }}">
+                            <td colspan="8" class="bg-light">
+                                <form
+                                    method="POST"
+                                    action="{{ url_for('buyer_invoices.waive_interest', charge_id=c.charge_id) }}"
+                                    class="row g-2 align-items-end py-2"
+                                >
+                                    <div class="col-sm-3">
+                                        <label class="form-label small mb-1">Waive Amount (&#8377;)</label>
+                                        <input
+                                            type="number" step="0.01" min="0.01" name="waive_amount" class="form-control form-control-sm"
+                                            max="{{ "%.2f"|format(c.interest_amount - c.waived_amount) }}"
+                                            value="{{ "%.2f"|format(c.interest_amount - c.waived_amount) }}" required
+                                        >
+                                    </div>
+                                    <div class="col-sm-6">
+                                        <label class="form-label small mb-1">Note (optional)</label>
+                                        <input type="text" name="note" class="form-control form-control-sm" placeholder="Reason for waiver">
+                                    </div>
+                                    <div class="col-sm-3">
+                                        <button type="submit" class="btn btn-sm btn-outline-danger w-100">Confirm Waive</button>
+                                    </div>
+                                </form>
+                            </td>
+                        </tr>
+                        {% endif %}
+                        {% else %}
+                        <tr><td colspan="8" class="text-center text-muted py-3">No interest charges yet.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            <div class="card-body small text-muted">
+                Grace period: {{ settings.grace_period_days }} day(s) after the due date before interest starts accruing.
+                Rate: {{ settings.interest_rate_annual_percent }}% per annum, simple interest on the remaining balance.
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-5">
+        <div class="card shadow-sm mb-4">
+            <div class="card-header">Record a Payment</div>
+            <div class="card-body">
+                {% if invoice.remaining_amount <= 0 %}
+                    <p class="text-success mb-0">This invoice is fully settled. &#9989;</p>
+                {% else %}
+                <form method="POST" action="{{ url_for('buyer_invoices.pay', invoice_id=invoice.invoice_id) }}">
+                    <div class="mb-3">
+                        <label class="form-label">Amount (&#8377;)</label>
+                        <input
+                            type="number" step="0.01" min="0.01" name="amount" class="form-control"
+                            max="{{ invoice.remaining_amount }}" value="{{ invoice.remaining_amount }}" required
+                        >
+                        <small class="text-muted">Balance due: &#8377;{{ "%.2f"|format(invoice.remaining_amount) }}</small>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Payment Method</label>
+                        <select name="payment_method" class="form-select" required>
+                            <option value="">Select...</option>
+                            {% for m in payment_methods %}
+                            <option value="{{ m }}">{{ m }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Transaction Reference (optional)</label>
+                        <input type="text" name="transaction_reference" class="form-control">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Payment Date</label>
+                        <input type="date" name="payment_date" class="form-control" value="{{ today }}" max="{{ today }}">
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100">Record Payment</button>
+                </form>
+                <small class="text-muted d-block mt-2">
+                    Multiple partial payments are supported - each one is recorded separately and the balance updates automatically.
+                </small>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<a href="{{ url_for('buyer_invoices.list_invoices', year=invoice.period_start.year, month=invoice.period_start.month, period=invoice.billing_period.split('-B')[1]) }}" class="btn btn-outline-secondary">
+    &larr; Back to Buyer Invoices
+</a>
+{% endblock %}

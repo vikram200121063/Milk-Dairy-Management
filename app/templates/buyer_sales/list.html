@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+{% block title %}Buyer Sales - OM Dairy{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h2 class="mb-0">Buyer Sales</h2>
+    <a href="{{ url_for('buyer_sales.add_sale') }}" class="btn btn-primary">+ Record Sale</a>
+</div>
+
+<div class="card shadow-sm mb-3">
+    <div class="card-body">
+        <form method="GET" class="row g-2 align-items-end">
+            <div class="col-sm-6 col-md-3">
+                <label class="form-label small mb-1">From</label>
+                <input type="date" name="date_from" class="form-control" value="{{ date_from }}">
+            </div>
+            <div class="col-sm-6 col-md-3">
+                <label class="form-label small mb-1">To</label>
+                <input type="date" name="date_to" class="form-control" value="{{ date_to }}">
+            </div>
+            <div class="col-sm-6 col-md-3">
+                <label class="form-label small mb-1">Buyer</label>
+                <select name="buyer_id" class="form-select">
+                    <option value="">All buyers</option>
+                    {% for b in buyers %}
+                    <option value="{{ b.buyer_id }}" {% if buyer_id == b.buyer_id %}selected{% endif %}>{{ b.company_name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-sm-4 col-md-2">
+                <label class="form-label small mb-1">Milk Type</label>
+                <select name="milk_type" class="form-select">
+                    <option value="">All</option>
+                    <option value="Cow" {% if milk_type == 'Cow' %}selected{% endif %}>Cow</option>
+                    <option value="Buffalo" {% if milk_type == 'Buffalo' %}selected{% endif %}>Buffalo</option>
+                </select>
+            </div>
+            <div class="col-sm-2 col-md-1">
+                <button type="submit" class="btn btn-outline-secondary w-100">Go</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="row g-3 mb-3">
+    <div class="col-md-4">
+        <div class="card shadow-sm text-center p-2">
+            <div class="text-muted small">Entries</div>
+            <div class="fs-5 fw-bold">{{ totals.count }}</div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card shadow-sm text-center p-2">
+            <div class="text-muted small">Total Quantity</div>
+            <div class="fs-5 fw-bold">{{ "%.2f"|format(totals.quantity) }} L</div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card shadow-sm text-center p-2">
+            <div class="text-muted small">Total Amount</div>
+            <div class="fs-5 fw-bold">&#8377;{{ "%.2f"|format(totals.amount) }}</div>
+        </div>
+    </div>
+</div>
+
+<div class="card shadow-sm">
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>Date</th><th>Buyer</th><th>Type</th><th>Qty (L)</th><th>Rate</th>
+                    <th>Gross</th><th>Tax</th><th>Other</th><th>Total</th><th class="text-end">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for s in sales %}
+                <tr>
+                    <td>{{ s.sale_date.strftime('%d %b %Y') }}</td>
+                    <td><a href="{{ url_for('buyers.profile', buyer_id=s.buyer_id) }}">{{ s.buyer_name }}</a></td>
+                    <td>{{ s.milk_type }}{% if s.quality_grade %} <span class="text-muted small">({{ s.quality_grade }})</span>{% endif %}</td>
+                    <td>{{ "%.2f"|format(s.quantity) }}</td>
+                    <td>&#8377;{{ "%.2f"|format(s.rate_per_litre) }}</td>
+                    <td>&#8377;{{ "%.2f"|format(s.gross_amount) }}</td>
+                    <td>&#8377;{{ "%.2f"|format(s.tax_amount) }}</td>
+                    <td>&#8377;{{ "%.2f"|format(s.other_charges) }}</td>
+                    <td><strong>&#8377;{{ "%.2f"|format(s.total_amount) }}</strong></td>
+                    <td class="text-end">
+                        <a href="{{ url_for('buyer_sales.edit_sale', sale_id=s.sale_id) }}" class="btn btn-sm btn-outline-primary">Edit</a>
+                        <form
+                            method="POST" action="{{ url_for('buyer_sales.delete_sale', sale_id=s.sale_id) }}"
+                            class="d-inline" onsubmit="return confirm('Delete this sale record?');"
+                        >
+                            <button type="submit" class="btn btn-sm btn-outline-danger">Delete</button>
+                        </form>
+                    </td>
+                </tr>
+                {% else %}
+                <tr><td colspan="10" class="text-center text-muted py-4">No sales recorded yet.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

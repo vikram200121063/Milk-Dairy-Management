@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block title %}Dunning Log - OM Dairy{% endblock %}
+
+{% block content %}
+<h2 class="mb-3">Dunning &amp; Invoice Email Log</h2>
+<p class="text-muted">Every payment reminder and invoice email sent to buyers, most recent first (last 300).</p>
+
+<div class="card shadow-sm">
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>Sent At</th>
+                    <th>Buyer</th>
+                    <th>Invoice</th>
+                    <th>Type</th>
+                    <th>Overdue Days</th>
+                    <th>Status</th>
+                    <th>Error</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for log in records %}
+                <tr>
+                    <td>{{ log.sent_at.strftime('%d %b %Y, %I:%M %p') }}</td>
+                    <td>{{ log.buyer_name }} <span class="text-muted small">({{ log.buyer_id }})</span></td>
+                    <td><a href="{{ url_for('buyer_invoices.detail', invoice_id=log.invoice_id) }}"><code>{{ log.invoice_id }}</code></a></td>
+                    <td>
+                        {{ 'Reminder' if log.record_type == 'Reminder' else 'Invoice Sent' }}
+                        {% if log.manual %}<span class="badge bg-light text-muted border">manual</span>{% endif %}
+                    </td>
+                    <td>{{ log.overdue_days_at_send }}</td>
+                    <td>
+                        {% if log.status == 'sent' %}
+                            <span class="badge bg-success">Sent</span>
+                        {% elif log.status == 'skipped' %}
+                            <span class="badge bg-secondary">Skipped</span>
+                        {% else %}
+                            <span class="badge bg-danger">Failed</span>
+                        {% endif %}
+                    </td>
+                    <td class="small text-muted">{{ log.error or '\u2014' }}</td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="7" class="text-center text-muted py-4">No buyer emails sent yet.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

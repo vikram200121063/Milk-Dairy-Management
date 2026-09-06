@@ -1,0 +1,180 @@
+{% extends "base.html" %}
+{% block title %}Accounting Dashboard - OM Dairy{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h2 class="mb-0">Accounting Dashboard</h2>
+    <a href="{{ url_for('accounting.settings') }}" class="btn btn-outline-secondary btn-sm">Financial Settings</a>
+</div>
+
+<div class="card shadow-sm mb-4">
+    <div class="card-body">
+        <form method="GET" class="row g-2 align-items-end">
+            <div class="col-sm-3">
+                <label class="form-label small mb-1">Range</label>
+                <select name="range" id="range-select" class="form-select" onchange="toggleCustom(this.value)">
+                    {% for value, label in range_choices %}
+                    <option value="{{ value }}" {% if data.range_type == value %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-sm-3 custom-range-field {{ 'd-none' if data.range_type != 'custom' }}">
+                <label class="form-label small mb-1">From</label>
+                <input type="date" name="from" class="form-control" value="{{ custom_from }}" max="{{ today }}">
+            </div>
+            <div class="col-sm-3 custom-range-field {{ 'd-none' if data.range_type != 'custom' }}">
+                <label class="form-label small mb-1">To</label>
+                <input type="date" name="to" class="form-control" value="{{ custom_to }}" max="{{ today }}">
+            </div>
+            <div class="col-sm-3">
+                <button type="submit" class="btn btn-primary w-100">Apply</button>
+            </div>
+        </form>
+        <div class="text-muted small mt-2">Showing figures for: <strong>{{ data.range_label }}</strong></div>
+    </div>
+</div>
+
+<h5 class="mb-2">Profit &amp; Loss <span class="text-muted small fw-normal">(accrual basis \u2013 for selected range)</span></h5>
+<div class="row g-3 mb-3">
+    <div class="col-6 col-md-3">
+        <div class="card shadow-sm stat-card text-center p-3 h-100">
+            <div class="text-muted small">Sales Revenue</div>
+            <div class="fs-5 fw-bold">&#8377;{{ "%.2f"|format(data.sales_revenue) }}</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card shadow-sm stat-card text-center p-3 h-100">
+            <div class="text-muted small">Other Income</div>
+            <div class="fs-5 fw-bold">&#8377;{{ "%.2f"|format(data.other_income) }}</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card shadow-sm stat-card accent-marigold text-center p-3 h-100">
+            <div class="text-muted small">Total Revenue</div>
+            <div class="fs-5 fw-bold">&#8377;{{ "%.2f"|format(data.revenue) }}</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card shadow-sm stat-card accent-copper text-center p-3 h-100">
+            <div class="text-muted small">Milk Purchase Cost</div>
+            <div class="fs-5 fw-bold">&#8377;{{ "%.2f"|format(data.milk_purchase_cost) }}</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card shadow-sm stat-card accent-success text-center p-3 h-100">
+            <div class="text-muted small">Gross Profit</div>
+            <div class="fs-5 fw-bold {{ 'text-danger' if data.gross_profit < 0 else '' }}">&#8377;{{ "%.2f"|format(data.gross_profit) }}</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card shadow-sm stat-card text-center p-3 h-100">
+            <div class="text-muted small">Other Expenses</div>
+            <div class="fs-5 fw-bold">&#8377;{{ "%.2f"|format(data.other_expenses) }}</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card shadow-sm stat-card accent-danger text-center p-3 h-100">
+            <div class="text-muted small">Interest / Late Charges</div>
+            <div class="fs-5 fw-bold">&#8377;{{ "%.2f"|format(data.interest_charges) }}</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card shadow-sm stat-card {{ 'accent-success' if data.net_profit >= 0 else 'accent-danger' }} text-center p-3 h-100">
+            <div class="text-muted small">Net Profit / Loss</div>
+            <div class="fs-4 fw-bold {{ 'text-success' if data.net_profit >= 0 else 'text-danger' }}">&#8377;{{ "%.2f"|format(data.net_profit) }}</div>
+        </div>
+    </div>
+</div>
+
+<h5 class="mb-2">Cash Flow <span class="text-muted small fw-normal">(cash basis \u2013 for selected range)</span></h5>
+<div class="row g-3 mb-3">
+    <div class="col-6 col-md-3">
+        <div class="card shadow-sm stat-card accent-success text-center p-3 h-100">
+            <div class="text-muted small">Cash Received</div>
+            <div class="fs-5 fw-bold">&#8377;{{ "%.2f"|format(data.cash_received) }}</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card shadow-sm stat-card accent-copper text-center p-3 h-100">
+            <div class="text-muted small">Cash Paid (Customers)</div>
+            <div class="fs-5 fw-bold">&#8377;{{ "%.2f"|format(data.cash_paid_customers) }}</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card shadow-sm stat-card text-center p-3 h-100">
+            <div class="text-muted small">Cash Paid (Expenses)</div>
+            <div class="fs-5 fw-bold">&#8377;{{ "%.2f"|format(data.cash_paid_expenses) }}</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card shadow-sm stat-card {{ 'accent-success' if data.net_cash_flow >= 0 else 'accent-danger' }} text-center p-3 h-100">
+            <div class="text-muted small">Net Cash Flow</div>
+            <div class="fs-4 fw-bold {{ 'text-success' if data.net_cash_flow >= 0 else 'text-danger' }}">&#8377;{{ "%.2f"|format(data.net_cash_flow) }}</div>
+        </div>
+    </div>
+</div>
+
+<h5 class="mb-2">Snapshot <span class="text-muted small fw-normal">(as of today, independent of the selected range)</span></h5>
+<div class="row g-3 mb-4">
+    <div class="col-6 col-md-3">
+        <div class="card shadow-sm stat-card accent-marigold text-center p-3 h-100">
+            <div class="text-muted small">Buyer Outstanding Receivables</div>
+            <div class="fs-5 fw-bold">&#8377;{{ "%.2f"|format(data.outstanding_receivables) }}</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card shadow-sm stat-card text-center p-3 h-100">
+            <div class="text-muted small">Customer Outstanding Payables</div>
+            <div class="fs-5 fw-bold">&#8377;{{ "%.2f"|format(data.outstanding_payables) }}</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card shadow-sm stat-card accent-danger text-center p-3 h-100">
+            <div class="text-muted small">Overdue Invoices</div>
+            <div class="fs-5 fw-bold {{ 'text-danger' if data.overdue.count else '' }}">{{ data.overdue.count }} (&#8377;{{ "%.2f"|format(data.overdue.amount) }})</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card shadow-sm stat-card accent-danger text-center p-3 h-100">
+            <div class="text-muted small">Interest Outstanding</div>
+            <div class="fs-5 fw-bold">&#8377;{{ "%.2f"|format(data.overdue.interest) }}</div>
+        </div>
+    </div>
+</div>
+
+<div class="card shadow-sm mb-4">
+    <div class="card-header">Expenses by Category <span class="text-muted small fw-normal">(selected range)</span></div>
+    <div class="table-responsive">
+        <table class="table table-sm mb-0">
+            <thead class="table-light">
+                <tr><th>Category</th><th class="text-end">Amount</th></tr>
+            </thead>
+            <tbody>
+                {% for row in data.expense_by_category %}
+                <tr>
+                    <td>{{ row.category }}</td>
+                    <td class="text-end">&#8377;{{ "%.2f"|format(row.total) }}</td>
+                </tr>
+                {% else %}
+                <tr><td colspan="2" class="text-center text-muted py-3">No expenses recorded in this range.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="alert alert-light border small">
+    <strong>Note:</strong> Profit &amp; Loss figures are recognized at the time of the sale/purchase (accrual basis).
+    Cash Flow figures reflect only money that actually changed hands in this range. A buyer settling an
+    already-invoiced balance is a cash event, not new revenue; paying a customer for milk already collected
+    is a cash event, not a new expense.
+</div>
+
+<script>
+    function toggleCustom(value) {
+        document.querySelectorAll('.custom-range-field').forEach((el) => {
+            el.classList.toggle('d-none', value !== 'custom');
+        });
+    }
+</script>
+{% endblock %}

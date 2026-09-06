@@ -23,6 +23,12 @@ A Flask + MongoDB web application for a milk dairy to manage customers, record d
   today and a shift guessed from the current time). 10-day invoices can be emailed
   one at a time or for a whole cycle at once, with the PDF invoice attached. A
   Notification Log page shows exactly what was sent, to whom, and whether it succeeded.
+- **Buyer Management & Accounting module** (`/buyers`, `/buyer-sales`, `/buyer-invoices`,
+  `/expenses`, `/accounting`): manage large buyers/companies, record milk sales to them,
+  generate consolidated invoices every 15 days, track partial/multiple payments, run an
+  automated dunning cycle (overdue → reminder → grace period → late interest), manage
+  business expenses, and view a Profit & Loss / Cash Flow dashboard. See its own section
+  below.
 
 ### Customer Portal Notes
 
@@ -59,6 +65,97 @@ A Flask + MongoDB web application for a milk dairy to manage customers, record d
   collection and viewable at **Notifications** in the admin nav, so nothing is a
   silent no-op.
 
+## Buyer Management & Accounting Module
+
+A second, independent business flow layered on top of the customer side, for
+selling collected milk onward to large buyers/companies and tracking the
+dairy's overall financial performance. Nothing in this module changes how
+Customer Milk Collection & Payment works - it reads from `milk_entries` and
+`payments` for accounting figures, but never writes to them.
+
+**Business flow:** Customer delivers milk → *(existing)* dairy records the
+entry and calculates what's owed to the customer → dairy sells milk onward to
+a buyer → a consolidated buyer invoice is generated every 15 days → the
+buyer's payment(s) are tracked → if unpaid past the due date, a reminder is
+sent, a grace period runs, and late interest accrues on what's still owed →
+all of this feeds a Profit & Loss / Cash Flow dashboard.
+
+- **Buyers** (`/buyers`) - company/name, contact person, mobile, email,
+  address, optional GST number, payment terms (days), credit limit, and
+  active/inactive status. Mirrors the Customers screen.
+- **Buyer Sales** (`/buyer-sales`) - one row per milk sale to a buyer: date,
+  milk type/quality, quantity, rate/litre, tax %, other charges, and the
+  computed total. Not tied to an invoice until one is generated (same pattern
+  as `milk_entries` and the 10-day payment cycle).
+- **Buyer Invoices** (`/buyer-invoices`) - "Generate Invoices" consolidates
+  every sale to each buyer within a half-month period (1st-15th / 16th-end)
+  into one invoice, safe to re-run anytime (it recalculates totals from the
+  underlying sales but never erases a payment or interest charge already
+  applied). Each invoice supports multiple partial payments, each recorded as
+  its own document with date/method/reference - a full transaction history,
+  not just a running total.
+- **Dunning** - due date passes → invoice marked **Overdue** and overdue days
+  are counted → a polite reminder email is sent automatically (also
+  available as a manual "Send Reminder" button) → after a configurable grace
+  period, simple interest starts accruing daily on the remaining balance →
+  every reminder and every interest charge is logged (Dunning Log, and the
+  Interest History table on each invoice), and an admin can waive or
+  partially adjust any interest charge with a note. Run the whole cycle
+  on-demand with the "Run Dunning Check" button, or automate it with:
+  ```bash
+  flask process-dunning
+  ```
+  (there's no background job runner built in, so wire this command up to a
+  daily cron job / scheduled task for hands-off operation).
+- **Expenses & Other Income** (`/expenses`) - Transportation/Fuel, Salary,
+  Electricity, Maintenance, Packaging, Other, plus an "Other Income" entry
+  type for the Revenue formula below (kept in the same collection with an
+  `entry_type` field rather than a separate one).
+- **Accounting Dashboard** (`/accounting`) - Today / This Week / This Month /
+  Custom Range reporting:
+  - **Profit & Loss** (accrual basis): Revenue (milk sold to buyers, pre-tax,
+    + other income) − Milk Purchase Cost (what's owed to customers) = Gross
+    Profit; minus Other Expenses and net Interest/Late Charges = Net
+    Profit/Loss.
+  - **Cash Flow** (cash basis, kept deliberately separate from P&L): Cash
+    Received (buyer payments + other income) − Cash Paid (to customers +
+    expenses) = Net Cash Flow. A buyer settling an already-invoiced balance
+    is a cash event, not new revenue; paying a customer for milk already
+    collected is a cash event, not a new expense - both were already booked
+    when the sale/purchase happened.
+  - **Snapshot** (as of today, independent of the selected range): Buyer
+    Outstanding Receivables, Customer Outstanding Payables, Overdue Invoices,
+    and Interest Outstanding.
+  - **Financial Settings** (`/accounting/settings`) - default payment terms,
+    grace period (days), annual interest rate, and default tax % on new
+    sales.
+
+### Notes & known trade-offs
+
+- "Buyer Portal" was built as an **admin-side management module** (like the
+  existing Customers/Payments screens), not a buyer-facing self-login portal
+  like `/portal` for customers. Let us know if buyer self-service login is
+  also wanted - it would follow the same pattern as `customer_portal.py`.
+- **Cash Paid to Customers** on the Accounting Dashboard is an approximation:
+  the existing `payments` collection (left untouched, on purpose) stores only
+  the most recent payment date/amount per 10-day cycle rather than a full
+  transaction ledger. For a cycle paid in one transaction (the common case)
+  this is exact; a cycle paid in several installments will only reflect the
+  latest one in the cash-flow date range. Buyer payments, by contrast, do
+  have a full per-transaction ledger (`buyer_payments`).
+- Interest is simple (non-compounding) interest, but is recalculated
+  incrementally each time the dunning cycle runs, on the *current* remaining
+  balance (which may already include earlier interest) - directly matching
+  the requirement that interest applies "on the remaining unpaid balance."
+  Running the dunning check twice on the same day never double-charges.
+
+### New Collections
+
+`buyers`, `buyer_sales`, `buyer_invoices`, `buyer_payments`, `expenses`
+(also holds Other Income via `entry_type`), `dunning_records`,
+`interest_charges`, `finance_settings` - all additive; no existing
+collection's schema changed.
+
 ## Tech Stack
 
 - **Backend:** Python, Flask (application factory + blueprints)
@@ -73,8 +170,8 @@ A Flask + MongoDB web application for a milk dairy to manage customers, record d
 milk-dairy-management/
 ├── app/
 │   ├── __init__.py          # Application factory, DB connection, blueprint registration
-│   ├── routes/               # One blueprint per feature area
-│   ├── services/              # Business logic (rate calc, payment cycles, invoices)
+│   ├── routes/               # One blueprint per feature area (customers, buyers, accounting, ...)
+│   ├── services/              # Business logic (rate calc, payment cycles, invoices, dunning, accounting)
 │   ├── templates/
 │   ├── static/
 │   └── utils/                 # Shared helpers (decorators, ID generator)

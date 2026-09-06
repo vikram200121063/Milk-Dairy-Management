@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+{% block title %}{{ 'Edit' if mode == 'edit' else 'Add' }} Entry - OM Dairy{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-7">
+        <div class="card shadow-sm">
+            <div class="card-body p-4">
+                <h3 class="mb-4">{{ 'Edit Entry' if mode == 'edit' else 'Add Expense / Income Entry' }}</h3>
+
+                <form method="POST">
+                    <div class="mb-3">
+                        <label class="form-label d-block">Entry Type</label>
+                        <div class="btn-group" role="group">
+                            <input
+                                type="radio" class="btn-check" name="entry_type" id="type-expense"
+                                value="Expense" {% if entry.entry_type != 'Income' %}checked{% endif %}
+                            >
+                            <label class="btn btn-outline-primary" for="type-expense">Expense</label>
+
+                            <input
+                                type="radio" class="btn-check" name="entry_type" id="type-income"
+                                value="Income" {% if entry.entry_type == 'Income' %}checked{% endif %}
+                            >
+                            <label class="btn btn-outline-primary" for="type-income">Other Income</label>
+                        </div>
+                    </div>
+
+                    <div class="mb-3" id="category-wrapper">
+                        <label class="form-label">Category</label>
+                        <select name="category" id="category-select" class="form-select">
+                            {% for c in categories %}
+                            <option value="{{ c }}" {% if entry.category == c %}selected{% endif %}>{{ c }}</option>
+                            {% endfor %}
+                        </select>
+                        <div class="form-text" id="income-category-note" class="d-none">
+                            Other Income entries are automatically categorized as "Other Income".
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Description</label>
+                        <input type="text" name="description" class="form-control" value="{{ entry.description or '' }}" required>
+                    </div>
+
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Amount (&#8377;)</label>
+                            <input
+                                type="number" step="0.01" min="0.01" name="amount" class="form-control"
+                                value="{{ entry.amount or '' }}" required
+                            >
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Date</label>
+                            <input
+                                type="date" name="date" class="form-control"
+                                value="{{ entry.date or '' }}" max="{{ today }}" required
+                            >
+                        </div>
+                    </div>
+
+                    <div class="d-flex gap-2 mt-4">
+                        <button type="submit" class="btn btn-primary">
+                            {{ 'Save Changes' if mode == 'edit' else 'Add Entry' }}
+                        </button>
+                        <a href="{{ url_for('expenses.list_expenses') }}" class="btn btn-outline-secondary">Cancel</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const expenseRadio = document.getElementById('type-expense');
+    const incomeRadio = document.getElementById('type-income');
+    const categoryWrapper = document.getElementById('category-wrapper');
+    const categorySelect = document.getElementById('category-select');
+
+    function applyEntryType() {
+        if (incomeRadio.checked) {
+            categoryWrapper.classList.add('d-none');
+        } else {
+            categoryWrapper.classList.remove('d-none');
+        }
+    }
+    expenseRadio.addEventListener('change', applyEntryType);
+    incomeRadio.addEventListener('change', applyEntryType);
+    applyEntryType();
+</script>
+{% endblock %}
