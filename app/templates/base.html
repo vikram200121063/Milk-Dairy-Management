@@ -16,6 +16,7 @@
         rel="stylesheet"
     >
     <link href="{{ url_for('static', filename='css/style.css') }}" rel="stylesheet">
+    <script src="{{ url_for('static', filename='js/theme-toggle.js') }}"></script>
     {% block extra_head %}{% endblock %}
 </head>
 <body class="{% block body_class %}{% endblock %}">
@@ -36,6 +37,10 @@
                     <a class="nav-link" href="{{ url_for('buyers.list_buyers') }}">Buyer</a>
                     <a class="nav-link" href="{{ url_for('accounting.dashboard') }}">Accounting</a>
                     <a class="nav-link me-lg-2" href="{{ url_for('about.index') }}">About Us</a>
+
+                    <button class="theme-toggle-btn" type="button" title="Toggle dark / light theme" aria-label="Toggle theme">
+                        <span class="theme-toggle-icon"></span>
+                    </button>
 
                     <div class="dropdown">
                         <button

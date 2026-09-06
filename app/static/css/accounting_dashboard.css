@@ -1,54 +1,24 @@
 /* ==========================================================================
    OM Dairy — Accounting Dashboard
-   A deliberately different visual world from the main (light, glassy)
-   dashboard: a dark "financial command center". Depth here is REAL 3D -
-   CSS perspective, preserve-3d, extruded bar faces, and cursor-driven
-   tilt - not just drop shadows. Scoped to body.acct-page so nothing else
-   in the app is affected.
+   Unique 3D elements (tilt tiles, extruded bars, gauge, flow diagram)
+   on the SAME light canvas as the rest of the app. Dark mode is handled
+   by the global [data-theme="dark"] variables in style.css — this file
+   only adds the accounting-specific layout and 3D mechanics.
    ========================================================================== */
 
-body.acct-page {
-    background:
-        radial-gradient(1200px 600px at 12% -8%, rgba(99, 102, 241, 0.28), transparent 60%),
-        radial-gradient(900px 500px at 92% 4%, rgba(34, 211, 238, 0.18), transparent 58%),
-        radial-gradient(700px 500px at 50% 108%, rgba(167, 139, 250, 0.16), transparent 60%),
-        #080B18;
-    color: #E8EBFA;
-    min-height: 100vh;
-}
-
 .acct {
-    --a-surface: rgba(255, 255, 255, 0.055);
-    --a-surface-2: rgba(255, 255, 255, 0.085);
-    --a-border: rgba(255, 255, 255, 0.11);
-    --a-text: #E8EBFA;
-    --a-muted: #8E97BE;
-    --a-emerald: #34D399;
-    --a-rose: #FB7185;
-    --a-amber: #FBBF24;
-    --a-cyan: #22D3EE;
-    --a-violet: #A78BFA;
-    --a-indigo: #6366F1;
-    color: var(--a-text);
-    font-family: "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
     perspective: 1600px;
 }
-
 .acct-display { font-family: "Sora", "Inter", sans-serif; letter-spacing: -0.02em; }
-.acct-muted { color: var(--a-muted); }
+.acct-muted { color: var(--color-ink-muted); }
 
-/* ---- Dark surface, with a 3D bevel: bright inset top edge, dark inset
-   bottom edge, and a wide ambient drop shadow underneath. ---- */
+/* ---- Glass panel (shared surface for all cards on this page) ---- */
 .acct-panel {
-    background: var(--a-surface);
-    border: 1px solid var(--a-border);
-    border-radius: 22px;
-    backdrop-filter: blur(22px);
-    -webkit-backdrop-filter: blur(22px);
-    box-shadow:
-        inset 0 1px 0 rgba(255, 255, 255, 0.16),
-        inset 0 -1px 0 rgba(0, 0, 0, 0.35),
-        0 26px 50px -24px rgba(0, 0, 0, 0.85);
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-soft);
+    transition: background 0.3s ease, border-color 0.3s ease;
 }
 
 /* ---- Header row ---- */
@@ -59,62 +29,44 @@ body.acct-page {
 .acct-eyebrow {
     display: inline-flex; align-items: center; gap: 0.45rem;
     font-size: 0.76rem; font-weight: 600; letter-spacing: 0.03em;
-    color: var(--a-cyan);
-    background: rgba(34, 211, 238, 0.10);
-    border: 1px solid rgba(34, 211, 238, 0.28);
+    color: var(--color-indigo);
+    background: var(--color-surface-tint);
+    border: 1px solid var(--color-border);
     padding: 0.3rem 0.75rem; border-radius: 999px; margin-bottom: 0.75rem;
 }
 .acct-pulse {
-    width: 6px; height: 6px; border-radius: 50%; background: var(--a-cyan);
+    width: 6px; height: 6px; border-radius: 50%; background: var(--color-success);
     animation: acct-pulse 2.2s infinite;
 }
-.acct-head h1 { font-size: 2rem; font-weight: 700; margin: 0; color: #fff; }
-.acct-head p { color: var(--a-muted); margin: 0.3rem 0 0; font-size: 0.94rem; }
+.acct-head h1 { font-size: 2rem; font-weight: 700; margin: 0; color: var(--color-ink); }
+.acct-head p { color: var(--color-ink-muted); margin: 0.3rem 0 0; font-size: 0.94rem; }
 
-/* ---- Dark range picker ---- */
+/* ---- Range picker ---- */
 .acct-range { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
 .acct-range select, .acct-range input {
-    background: rgba(255, 255, 255, 0.06);
-    border: 1px solid var(--a-border);
-    color: var(--a-text);
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    color: var(--color-ink);
     border-radius: 11px;
     padding: 0.5rem 0.8rem;
-    font-size: 0.87rem;
-    font-weight: 500;
+    font-size: 0.87rem; font-weight: 500;
 }
-.acct-range select option { background: #131A32; color: var(--a-text); }
 .acct-range select:focus, .acct-range input:focus {
-    outline: none; border-color: var(--a-indigo);
-    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.22);
+    outline: none; border-color: var(--color-indigo);
+    box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.15);
 }
-.acct-range input[type="date"] { color-scheme: dark; }
 .acct-range button {
-    background: linear-gradient(120deg, var(--a-indigo), var(--a-violet));
+    background: linear-gradient(120deg, var(--color-indigo), var(--color-violet));
     border: none; color: #fff; font-weight: 600; font-size: 0.87rem;
     padding: 0.55rem 1.15rem; border-radius: 11px;
-    box-shadow: 0 10px 22px -10px rgba(99, 102, 241, 0.9);
+    box-shadow: 0 10px 22px -10px rgba(79, 70, 229, 0.55);
     transition: filter 0.15s ease, transform 0.12s ease;
 }
-.acct-range button:hover { filter: brightness(1.1); }
+.acct-range button:hover { filter: brightness(1.08); }
 .acct-range button:active { transform: translateY(1px); }
 
-/* ---- Section nav, restyled for the dark canvas ---- */
-body.acct-page .section-nav {
-    background: rgba(255, 255, 255, 0.05);
-    border-color: var(--a-border);
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12);
-    backdrop-filter: blur(18px);
-}
-body.acct-page .section-nav a { color: #A9B2D6; }
-body.acct-page .section-nav a:hover { background: rgba(255, 255, 255, 0.08); color: #fff; }
-body.acct-page .section-nav a.active {
-    background: linear-gradient(120deg, var(--a-indigo), var(--a-violet));
-    color: #fff;
-    box-shadow: 0 8px 20px -10px rgba(99, 102, 241, 0.95);
-}
-
 /* ==========================================================================
-   The centerpiece: profit gauge + money flow, side by side
+   Profit gauge + money flow
    ========================================================================== */
 .acct-stage {
     display: grid;
@@ -124,48 +76,46 @@ body.acct-page .section-nav a.active {
 }
 @media (max-width: 1100px) { .acct-stage { grid-template-columns: 1fr; } }
 
-/* ---- Profit gauge ---- */
 .acct-gauge-card {
     padding: 1.6rem 1.4rem;
     text-align: center;
-    position: relative;
-    overflow: hidden;
+    position: relative; overflow: hidden;
 }
 .acct-gauge-card::after {
     content: "";
     position: absolute; top: 0; right: 0; bottom: 0; left: 0;
-    background: radial-gradient(320px 200px at 50% 0%, rgba(52, 211, 153, 0.14), transparent 70%);
+    background: radial-gradient(320px 200px at 50% 0%, rgba(79, 70, 229, 0.06), transparent 70%);
     pointer-events: none;
 }
 .acct-gauge-wrap { position: relative; width: 220px; height: 220px; margin: 0.2rem auto 0.4rem; }
 .acct-gauge-wrap svg { width: 100%; height: 100%; transform: rotate(-90deg); }
-.acct-gauge-track { stroke: rgba(255, 255, 255, 0.07); }
+.acct-gauge-track { stroke: var(--color-border); }
 .acct-gauge-arc {
     stroke-linecap: round;
-    filter: drop-shadow(0 0 10px currentColor);
+    filter: drop-shadow(0 0 8px currentColor);
     transition: stroke-dashoffset 1.2s cubic-bezier(.22, 1, .36, 1);
 }
 .acct-gauge-center {
     position: absolute; top: 0; right: 0; bottom: 0; left: 0;
     display: flex; flex-direction: column; align-items: center; justify-content: center;
 }
-.acct-gauge-label { font-size: 0.76rem; color: var(--a-muted); letter-spacing: 0.04em; }
-.acct-gauge-value { font-size: 1.85rem; font-weight: 700; line-height: 1.15; color: #fff; }
+.acct-gauge-label { font-size: 0.76rem; color: var(--color-ink-muted); letter-spacing: 0.04em; }
+.acct-gauge-value { font-size: 1.85rem; font-weight: 700; line-height: 1.15; color: var(--color-ink); }
 .acct-gauge-margin { font-size: 0.82rem; font-weight: 600; margin-top: 0.15rem; }
 
 /* ---- Money flow diagram ---- */
 .acct-flow-card { padding: 1.4rem 1.5rem 1rem; display: flex; flex-direction: column; }
-.acct-card-title { font-family: "Sora", sans-serif; font-size: 1rem; font-weight: 700; color: #fff; margin: 0; }
-.acct-card-sub { font-size: 0.78rem; color: var(--a-muted); margin-top: 0.15rem; }
+.acct-card-title { font-family: "Sora", sans-serif; font-size: 1rem; font-weight: 700; color: var(--color-ink); margin: 0; }
+.acct-card-sub { font-size: 0.78rem; color: var(--color-ink-muted); margin-top: 0.15rem; }
 .acct-flow-canvas { flex: 1; min-height: 250px; margin-top: 0.6rem; }
 .acct-flow-canvas svg { width: 100%; height: 100%; overflow: visible; }
 .acct-flow-band { opacity: 0; animation: acct-fade-in 0.9s ease forwards; }
-.acct-flow-label { font-size: 11px; font-weight: 600; fill: #fff; }
-.acct-flow-amount { font-size: 12px; font-weight: 700; fill: #fff; }
-.acct-flow-sub { font-size: 10px; fill: #8E97BE; }
+.acct-flow-label { font-size: 11px; font-weight: 600; fill: var(--color-ink); }
+.acct-flow-amount { font-size: 12px; font-weight: 700; fill: var(--color-ink); }
+.acct-flow-sub { font-size: 10px; fill: var(--color-ink-muted); }
 .acct-flow-empty {
     display: flex; align-items: center; justify-content: center;
-    height: 100%; color: var(--a-muted); font-size: 0.88rem;
+    height: 100%; color: var(--color-ink-muted); font-size: 0.88rem;
 }
 
 /* ==========================================================================
@@ -191,39 +141,37 @@ body.acct-page .section-nav a.active {
     color: inherit;
     overflow: hidden;
 }
-.acct-tile:hover { color: inherit; }
-/* The specular highlight that tracks the cursor - what sells the 3D. */
+.acct-tile:hover { color: inherit; box-shadow: var(--shadow-lifted); }
 .acct-tile::before {
     content: "";
     position: absolute; top: 0; right: 0; bottom: 0; left: 0;
     border-radius: inherit;
-    background: radial-gradient(360px circle at var(--mx, 50%) var(--my, 0%), rgba(255, 255, 255, 0.13), transparent 42%);
+    background: radial-gradient(360px circle at var(--mx, 50%) var(--my, 0%), rgba(79, 70, 229, 0.08), transparent 42%);
     opacity: 0;
     transition: opacity 0.3s ease;
     pointer-events: none;
 }
 .acct-tile:hover::before { opacity: 1; }
 
-/* Children lifted onto their own Z planes, so tilting produces real parallax. */
 .acct-tile-icon {
     width: 44px; height: 44px; border-radius: 13px;
     display: flex; align-items: center; justify-content: center;
     margin-bottom: 0.9rem;
     transform: translateZ(38px);
-    color: #08122B;
+    color: #fff;
 }
 .acct-tile-icon svg { width: 21px; height: 21px; }
-.acct-tile-label { font-size: 0.8rem; color: var(--a-muted); transform: translateZ(18px); }
+.acct-tile-label { font-size: 0.8rem; color: var(--color-ink-muted); transform: translateZ(18px); }
 .acct-tile-value {
-    font-size: 1.6rem; font-weight: 700; color: #fff; line-height: 1.2;
+    font-size: 1.6rem; font-weight: 700; color: var(--color-ink); line-height: 1.2;
     transform: translateZ(28px); margin-top: 0.1rem;
 }
-.acct-tile-sub { font-size: 0.75rem; color: var(--a-muted); margin-top: 0.3rem; transform: translateZ(12px); }
+.acct-tile-sub { font-size: 0.75rem; color: var(--color-ink-muted); margin-top: 0.3rem; transform: translateZ(12px); }
 
-.acct-tile.t-emerald .acct-tile-icon { background: linear-gradient(140deg, #6EE7B7, var(--a-emerald)); box-shadow: 0 14px 26px -12px rgba(52, 211, 153, 0.85); }
-.acct-tile.t-rose    .acct-tile-icon { background: linear-gradient(140deg, #FDA4AF, var(--a-rose));    box-shadow: 0 14px 26px -12px rgba(251, 113, 133, 0.85); }
-.acct-tile.t-amber   .acct-tile-icon { background: linear-gradient(140deg, #FCD34D, var(--a-amber));   box-shadow: 0 14px 26px -12px rgba(251, 191, 36, 0.85); }
-.acct-tile.t-cyan    .acct-tile-icon { background: linear-gradient(140deg, #67E8F9, var(--a-cyan));    box-shadow: 0 14px 26px -12px rgba(34, 211, 238, 0.85); }
+.acct-tile.t-emerald .acct-tile-icon { background: linear-gradient(140deg, #6EE7B7, #059669); box-shadow: 0 14px 26px -12px rgba(52, 211, 153, 0.65); }
+.acct-tile.t-rose    .acct-tile-icon { background: linear-gradient(140deg, #FDA4AF, #E11D48); box-shadow: 0 14px 26px -12px rgba(251, 113, 133, 0.65); }
+.acct-tile.t-amber   .acct-tile-icon { background: linear-gradient(140deg, #FCD34D, #D97706); box-shadow: 0 14px 26px -12px rgba(251, 191, 36, 0.65); }
+.acct-tile.t-cyan    .acct-tile-icon { background: linear-gradient(140deg, #67E8F9, #0891B2); box-shadow: 0 14px 26px -12px rgba(34, 211, 238, 0.65); }
 
 /* ==========================================================================
    Extruded 3D bar chart
@@ -237,7 +185,7 @@ body.acct-page .section-nav a.active {
 
 .acct-chart-card { padding: 1.4rem 1.5rem 1.2rem; }
 .acct-chart-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; margin-bottom: 0.4rem; }
-.acct-legend { display: flex; gap: 0.9rem; font-size: 0.76rem; color: var(--a-muted); }
+.acct-legend { display: flex; gap: 0.9rem; font-size: 0.76rem; color: var(--color-ink-muted); }
 .acct-legend i { display: inline-block; width: 9px; height: 9px; border-radius: 3px; margin-right: 5px; }
 
 .acct-bars-viewport { perspective: 900px; padding: 1.9rem 0 0.4rem; }
@@ -249,20 +197,18 @@ body.acct-page .section-nav a.active {
 }
 .acct-month { display: flex; flex-direction: column; align-items: center; gap: 0.6rem; transform-style: preserve-3d; }
 .acct-pair { display: flex; align-items: flex-end; gap: 11px; height: 190px; transform-style: preserve-3d; }
-.acct-month-label { font-size: 0.7rem; color: var(--a-muted); white-space: nowrap; }
+.acct-month-label { font-size: 0.7rem; color: var(--color-ink-muted); white-space: nowrap; }
 
-/* Each bar is a real box: front face + top face + right face. */
 .acct-bar {
     position: relative;
-    width: 26px;
-    height: 0;
+    width: 26px; height: 0;
     transform-style: preserve-3d;
     background: linear-gradient(180deg, var(--bar-light), var(--bar-dark));
     border-radius: 3px 3px 0 0;
     transition: height 1s cubic-bezier(.22, 1, .36, 1);
     transition-delay: var(--bar-delay, 0s);
 }
-.acct-bar::before { /* top face */
+.acct-bar::before {
     content: "";
     position: absolute; top: 0; left: 0;
     width: 26px; height: 14px;
@@ -271,7 +217,7 @@ body.acct-page .section-nav a.active {
     transform: rotateX(90deg);
     border-radius: 3px 3px 0 0;
 }
-.acct-bar::after { /* right side face */
+.acct-bar::after {
     content: "";
     position: absolute; top: 0; right: 0;
     width: 14px; height: 100%;
@@ -289,14 +235,14 @@ body.acct-page .section-nav a.active {
 .acct-balance-rows { margin-top: 1.1rem; display: flex; flex-direction: column; gap: 1.15rem; }
 .acct-balance-row { text-decoration: none; color: inherit; display: block; }
 .acct-balance-row:hover { color: inherit; }
-.acct-balance-row:hover .acct-balance-fill { filter: brightness(1.18); }
+.acct-balance-row:hover .acct-balance-fill { filter: brightness(1.12); }
 .acct-balance-top { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 0.45rem; }
-.acct-balance-name { font-size: 0.82rem; color: var(--a-muted); }
-.acct-balance-amt { font-size: 1.15rem; font-weight: 700; color: #fff; }
+.acct-balance-name { font-size: 0.82rem; color: var(--color-ink-muted); }
+.acct-balance-amt { font-size: 1.15rem; font-weight: 700; color: var(--color-ink); }
 .acct-balance-track {
     height: 15px; border-radius: 999px;
-    background: rgba(255, 255, 255, 0.06);
-    box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.5);
+    background: var(--color-surface-tint);
+    box-shadow: inset 0 1px 4px rgba(0, 0, 0, 0.08);
     overflow: hidden;
 }
 .acct-balance-fill {
@@ -307,34 +253,52 @@ body.acct-page .section-nav a.active {
 }
 .acct-balance-fill.f-in { background: linear-gradient(90deg, #FCD34D, #F59E0B); }
 .acct-balance-fill.f-out { background: linear-gradient(90deg, #FDA4AF, #E11D48); }
-.acct-balance-note { font-size: 0.73rem; color: var(--a-muted); margin-top: 0.35rem; }
+.acct-balance-note { font-size: 0.73rem; color: var(--color-ink-muted); margin-top: 0.35rem; }
 
 .acct-net {
     margin-top: auto; padding-top: 1.2rem;
-    border-top: 1px solid var(--a-border);
+    border-top: 1px solid var(--color-border);
     display: flex; align-items: baseline; justify-content: space-between;
 }
-.acct-net-label { font-size: 0.82rem; color: var(--a-muted); }
+.acct-net-label { font-size: 0.82rem; color: var(--color-ink-muted); }
 .acct-net-value { font-size: 1.3rem; font-weight: 700; }
 
 /* ---- Footnote ---- */
 .acct-note {
     margin-top: 1.15rem;
-    background: rgba(255, 255, 255, 0.04);
-    border: 1px solid var(--a-border);
+    background: var(--color-surface-tint);
+    border: 1px solid var(--color-border);
     border-radius: 16px;
     padding: 0.9rem 1.1rem;
     font-size: 0.8rem;
-    color: var(--a-muted);
+    color: var(--color-ink-muted);
     line-height: 1.55;
 }
-.acct-note strong { color: #C7CEEC; }
+.acct-note strong { color: var(--color-ink); }
+
+/* ---- Dark mode: deepen the tilt highlight and bar inset shadows ---- */
+[data-theme="dark"] .acct-tile::before {
+    background: radial-gradient(360px circle at var(--mx, 50%) var(--my, 0%), rgba(255, 255, 255, 0.13), transparent 42%);
+}
+[data-theme="dark"] .acct-balance-track {
+    box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.5);
+}
+[data-theme="dark"] .acct-flow-label,
+[data-theme="dark"] .acct-flow-amount { fill: #E8EBFA; }
+[data-theme="dark"] .acct-flow-sub { fill: #8E97BE; }
+[data-theme="dark"] .acct-range select,
+[data-theme="dark"] .acct-range input {
+    background: rgba(255, 255, 255, 0.06);
+    color: #E8EBFA;
+}
+[data-theme="dark"] .acct-range select option { background: #131A32; }
+[data-theme="dark"] .acct-range input[type="date"] { color-scheme: dark; }
 
 /* ---- Animations ---- */
 @keyframes acct-pulse {
-    0% { box-shadow: 0 0 0 0 rgba(34, 211, 238, 0.6); }
-    70% { box-shadow: 0 0 0 7px rgba(34, 211, 238, 0); }
-    100% { box-shadow: 0 0 0 0 rgba(34, 211, 238, 0); }
+    0% { box-shadow: 0 0 0 0 rgba(5, 150, 105, 0.5); }
+    70% { box-shadow: 0 0 0 7px rgba(5, 150, 105, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(5, 150, 105, 0); }
 }
 @keyframes acct-fade-in { to { opacity: 1; } }
 

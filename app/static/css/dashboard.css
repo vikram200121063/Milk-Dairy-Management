@@ -312,3 +312,27 @@ body.dash-page {
     .dash-hero-art { width: 150px; height: 120px; }
     .dash-hero h1 { font-size: 1.5rem; }
 }
+
+/* ==========================================================================
+   Dark mode overrides for the main dashboard
+   ========================================================================== */
+[data-theme="dark"] body.dash-page {
+    background:
+        radial-gradient(1100px 520px at 8% -10%, rgba(99, 102, 241, 0.18), transparent 60%),
+        radial-gradient(900px 480px at 100% 0%, rgba(34, 211, 238, 0.10), transparent 55%),
+        #0C0F1D;
+}
+[data-theme="dark"] .dash-glass-card {
+    background: rgba(255, 255, 255, 0.055);
+    border-color: rgba(255, 255, 255, 0.11);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12), 0 20px 40px -20px rgba(0,0,0,0.7);
+}
+[data-theme="dark"] .dash { color: #E8EBFA; --dash-ink: #E8EBFA; --dash-ink-soft: #8E97BE; --dash-ink-faint: #5F6A90; }
+[data-theme="dark"] .dash-stat-value { color: #fff; }
+[data-theme="dark"] .dash-chart-head h3 { color: #fff; }
+[data-theme="dark"] .dash-section-title { color: #E8EBFA; }
+[data-theme="dark"] .dash-action { color: #E8EBFA; }
+[data-theme="dark"] .dash-action:hover { color: #fff; }
+[data-theme="dark"] .dash-finance { border-color: rgba(255,255,255,0.11); }
+[data-theme="dark"] .dash-finance-value { color: #fff; }
+[data-theme="dark"] .dash-activity-title { color: #fff; }
