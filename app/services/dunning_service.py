@@ -22,7 +22,7 @@ day never double-charges.
 """
 from datetime import datetime, timedelta, timezone
 
-from app.services import email_service, finance_settings_service, ledger_service
+from app.services import ai_service, email_service, finance_settings_service, ledger_service
 from app.services.buyer_invoice_service import compute_invoice_status
 from app.utils.id_generator import get_next_sequence
 
@@ -65,8 +65,20 @@ def send_dunning_reminder(db, invoice, dairy_info, overdue_days, manual=False):
     elif not email_service.email_configured():
         status, error = "skipped", "Email not configured."
     else:
+        # If AI is configured, tone-adjust the reminder based on how many
+        # times this buyer has already been reminded (across all their
+        # invoices) - first time gets a warm nudge, repeat offenders get
+        # something firmer. draft_dunning_paragraph() returns None on any
+        # failure, in which case send_dunning_reminder_email() just falls
+        # back to its static paragraph - a reminder always goes out.
+        prior_reminder_count = db.dunning_records.count_documents(
+            {"buyer_id": invoice["buyer_id"], "record_type": REMINDER, "status": "sent"}
+        )
+        ai_message = ai_service.draft_dunning_paragraph(buyer, invoice, overdue_days, prior_reminder_count)
         try:
-            email_service.send_dunning_reminder_email(buyer, invoice, dairy_info, overdue_days)
+            email_service.send_dunning_reminder_email(
+                buyer, invoice, dairy_info, overdue_days, custom_message=ai_message
+            )
             status, error = "sent", None
         except email_service.EmailSendError as exc:
             status, error = "failed", str(exc)

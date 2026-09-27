@@ -10,6 +10,17 @@
             <div class="card-body p-4">
                 <h3 class="mb-4">{{ 'Edit Entry' if mode == 'edit' else 'Add Expense / Income Entry' }}</h3>
 
+                {% if ai_enabled and not is_guest %}
+                <div class="border rounded p-3 mb-4" style="background: var(--color-surface-tint);">
+                    <label class="form-label fw-semibold mb-2">Scan a receipt (optional)</label>
+                    <div class="d-flex gap-2 align-items-center flex-wrap">
+                        <input type="file" id="receipt-input" accept="image/*" class="form-control" style="max-width: 320px;">
+                        <button type="button" id="receipt-scan-btn" class="btn btn-sm btn-outline-primary" disabled>Auto-fill from photo</button>
+                    </div>
+                    <div id="receipt-status" class="form-text mt-2"></div>
+                </div>
+                {% endif %}
+
                 <form method="POST">
                     <div class="mb-3">
                         <label class="form-label d-block">Entry Type</label>
@@ -42,21 +53,21 @@
 
                     <div class="mb-3">
                         <label class="form-label">Description</label>
-                        <input type="text" name="description" class="form-control" value="{{ entry.description or '' }}" required>
+                        <input type="text" id="description-input" name="description" class="form-control" value="{{ entry.description or '' }}" required>
                     </div>
 
                     <div class="row g-3">
                         <div class="col-md-6">
                             <label class="form-label">Amount (&#8377;)</label>
                             <input
-                                type="number" step="0.01" min="0.01" name="amount" class="form-control"
+                                type="number" step="0.01" min="0.01" id="amount-input" name="amount" class="form-control"
                                 value="{{ entry.amount or '' }}" required
                             >
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">Date</label>
                             <input
-                                type="date" name="date" class="form-control"
+                                type="date" id="date-input" name="date" class="form-control"
                                 value="{{ entry.date or '' }}" max="{{ today }}" required
                             >
                         </div>
@@ -90,5 +101,74 @@
     expenseRadio.addEventListener('change', applyEntryType);
     incomeRadio.addEventListener('change', applyEntryType);
     applyEntryType();
+
+    {% if ai_enabled and not is_guest %}
+    // Receipt-photo auto-fill: uploads the image to /expenses/ai-extract,
+    // which returns a best-guess {amount, date, description, category,
+    // entry_type, confidence} - never writes anything itself, so the
+    // admin still reviews every field before hitting Save.
+    (function () {
+        const fileInput = document.getElementById('receipt-input');
+        const scanBtn = document.getElementById('receipt-scan-btn');
+        const statusEl = document.getElementById('receipt-status');
+
+        fileInput.addEventListener('change', function () {
+            scanBtn.disabled = !fileInput.files.length;
+            statusEl.textContent = '';
+        });
+
+        scanBtn.addEventListener('click', function () {
+            if (!fileInput.files.length) return;
+            const formData = new FormData();
+            formData.append('receipt', fileInput.files[0]);
+
+            scanBtn.disabled = true;
+            const originalLabel = scanBtn.textContent;
+            scanBtn.textContent = 'Reading receipt...';
+            statusEl.className = 'form-text mt-2';
+            statusEl.textContent = '';
+
+            fetch("{{ url_for('expenses.ai_extract') }}", { method: 'POST', body: formData })
+                .then(function (r) { return r.json(); })
+                .then(function (data) {
+                    if (data.error) {
+                        statusEl.className = 'form-text mt-2 text-danger';
+                        statusEl.textContent = data.error;
+                        return;
+                    }
+                    if (typeof data.amount === 'number') {
+                        document.getElementById('amount-input').value = data.amount;
+                    }
+                    if (data.date) {
+                        document.getElementById('date-input').value = data.date;
+                    }
+                    if (data.description) {
+                        document.getElementById('description-input').value = data.description;
+                    }
+                    if (data.entry_type === 'Income') {
+                        incomeRadio.checked = true;
+                    } else {
+                        expenseRadio.checked = true;
+                    }
+                    applyEntryType();
+                    if (data.category && categorySelect.querySelector('option[value="' + CSS.escape(data.category) + '"]')) {
+                        categorySelect.value = data.category;
+                    }
+                    statusEl.className = data.confidence === 'low' ? 'form-text mt-2 text-warning' : 'form-text mt-2 text-success';
+                    statusEl.textContent = data.confidence === 'low'
+                        ? 'Filled in from the photo, but it was unclear in places - please double-check every field.'
+                        : 'Filled in from the photo - please double-check before saving.';
+                })
+                .catch(function () {
+                    statusEl.className = 'form-text mt-2 text-danger';
+                    statusEl.textContent = "Couldn't read that receipt. Please try again or enter the details manually.";
+                })
+                .finally(function () {
+                    scanBtn.disabled = false;
+                    scanBtn.textContent = originalLabel;
+                });
+        });
+    })();
+    {% endif %}
 </script>
 {% endblock %}

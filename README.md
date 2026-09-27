@@ -156,12 +156,63 @@ all of this feeds a Profit & Loss / Cash Flow dashboard.
 `interest_charges`, `finance_settings` - all additive; no existing
 collection's schema changed.
 
+## AI Features
+
+Everything here is powered by `app/services/ai_service.py` and is entirely optional:
+leave the active provider's API key blank in `.env` and the app behaves exactly as
+it did before - no crashes, no dead buttons, just a "not configured" message
+wherever an AI control would otherwise appear.
+
+### Choosing a provider
+
+Pick one with `AI_PROVIDER` in `.env` and set that provider's key - nothing else
+needs to change, the four features below work the same regardless of which you pick
+(with one exception noted below):
+
+| `AI_PROVIDER` | Cost | Get a key | Notes |
+|---|---|---|---|
+| `gemini` | **Free tier** | [aistudio.google.com/apikey](https://aistudio.google.com/apikey) | Supports everything below, including the receipt scanner. Best free option. |
+| `groq` | **Free tier** | [console.groq.com/keys](https://console.groq.com/keys) | Very fast; runs open models (Llama, etc). Receipt scanning isn't available on it (no reliable vision + tool-calling support). |
+| `anthropic` | Paid, no free tier | [console.anthropic.com](https://console.anthropic.com/) | Claude. |
+| `openai` | Paid, no free tier | [platform.openai.com](https://platform.openai.com/) | GPT. |
+
+`ANTHROPIC_API_KEY`/`OPENAI_API_KEY`/`GEMINI_API_KEY`/`GROQ_API_KEY` and their matching
+`*_MODEL` settings all live in `.env` - see `.env.example`. You only need to fill in
+the one matching whatever `AI_PROVIDER` you chose.
+
+### The four features
+
+- **Business Assistant** - a floating chat widget on every admin page (bottom
+  right) that answers plain-language questions about your own data - *"Which
+  buyers are overdue?"*, *"How's revenue this month?"*, *"Who supplied the most
+  milk this week?"*. It only ever reads through a small, fixed set of safe
+  lookup functions (customer/buyer summaries, revenue & expense figures,
+  overdue invoices, pending payments) - it can't run arbitrary queries or
+  change any data.
+- **AI-drafted dunning reminders** - when the automated dunning cycle
+  (`flask process-dunning` / "Run Dunning Check") sends a payment reminder to
+  an overdue buyer, the AI drafts the message paragraph itself, tuned in tone
+  to that buyer's history (a warm first nudge vs. a firmer repeat-offender
+  message). If AI isn't configured, or the call fails for any reason, it
+  silently falls back to the original static wording - a reminder always goes
+  out either way.
+- **AI Profit & Loss summary** - an "AI Summary" button on the Accounting
+  dashboard turns the currently-selected period's figures into a 3-5 sentence
+  plain-English readout. `flask send-pl-summary` emails the same thing for the
+  current month to `ADMIN_NOTIFICATION_EMAIL` - wire it up to a monthly cron
+  job / scheduled task the same way as `process-dunning`.
+- **Receipt photo auto-fill** - on the Add/Edit Expense form, upload a photo of
+  a receipt and the AI's vision reads it and pre-fills amount, date,
+  description, and category. It never saves anything itself - you still review
+  and submit the form. **Not available when `AI_PROVIDER=groq`** (see table above).
+
 ## Tech Stack
 
 - **Backend:** Python, Flask (application factory + blueprints)
 - **Database:** MongoDB (MongoDB Atlas free tier)
 - **Frontend:** Bootstrap 5, vanilla JS
 - **PDF generation:** ReportLab
+- **AI features:** Anthropic / OpenAI / Google Gemini / Groq (pick one) - optional, see [AI Features](#ai-features)
 - **Production server:** Gunicorn
 
 ## Project Structure
@@ -212,6 +263,12 @@ milk-dairy-management/
 | `SECRET_KEY` | Random secret for signing session cookies |
 | `FLASK_DEBUG` | `True` locally, `False` in production |
 | `DAIRY_NAME`, `DAIRY_ADDRESS`, `DAIRY_CONTACT` | Shown on invoices |
+| `AI_PROVIDER` | Which AI provider powers the 4 AI features - `anthropic`, `openai`, `gemini`, or `groq` (see [AI Features](#ai-features)) |
+| `ANTHROPIC_API_KEY` / `ANTHROPIC_MODEL` | Used when `AI_PROVIDER=anthropic` |
+| `OPENAI_API_KEY` / `OPENAI_MODEL` | Used when `AI_PROVIDER=openai` |
+| `GEMINI_API_KEY` / `GEMINI_MODEL` | Used when `AI_PROVIDER=gemini` |
+| `GROQ_API_KEY` / `GROQ_MODEL` | Used when `AI_PROVIDER=groq` |
+| `ADMIN_NOTIFICATION_EMAIL` | Where `flask send-pl-summary` emails the monthly AI P&L narrative |
 
 ## Deployment
 

@@ -8,3 +8,13 @@ reportlab==4.4.3
 svglib==2.2.0
 Pillow==10.4.0
 gunicorn==22.0.0
+# Power app/services/ai_service.py (Business Assistant, AI dunning drafts,
+# P&L narrative, receipt auto-fill) - optional, gated behind AI_PROVIDER
+# and that provider's API key (see .env.example). You only actually need
+# whichever ONE of these three packages matches your chosen AI_PROVIDER;
+# all three are listed so switching providers never needs a second
+# `pip install`. Groq reuses the openai package (Groq's API is
+# OpenAI-compatible), so it needs no separate package.
+anthropic>=0.40.0,<1.0.0
+openai>=1.40.0,<2.0.0
+google-generativeai>=0.8.0,<1.0.0

@@ -48,6 +48,52 @@ class Config:
     SMTP_FROM_EMAIL = os.environ.get("SMTP_FROM_EMAIL")
     SMTP_FROM_NAME = os.environ.get("SMTP_FROM_NAME", DAIRY_NAME)
 
+    # --- AI features ---
+    # Powers the dashboard "Ask" business assistant, AI-drafted dunning
+    # reminders, the P&L narrative summary, and receipt/photo auto-fill on
+    # the expense form (app/services/ai_service.py). Every one of those
+    # features checks ai_service.ai_configured() first and falls back to
+    # its previous non-AI behavior (or a plain "not configured" message)
+    # when no key is set for the active provider - nothing here is
+    # required for the rest of the app to work.
+    #
+    # AI_PROVIDER picks which service the four features above call:
+    #   "anthropic" (default) - Claude. Paid, no free tier. console.anthropic.com
+    #   "openai"              - GPT. Paid, no free tier. platform.openai.com
+    #   "gemini"              - Google Gemini. Has a genuinely free tier and
+    #                           supports both vision and tool-calling, so it's
+    #                           the closest free drop-in for every feature
+    #                           here. Get a key at aistudio.google.com/apikey
+    #   "groq"                - Runs open models (Llama, etc.) very fast with
+    #                           a generous free tier, but its models don't
+    #                           reliably support the vision call the receipt
+    #                           auto-fill feature needs - that one feature
+    #                           will show a "not supported" message under
+    #                           this provider. Get a key at console.groq.com
+    # Only the key for whichever provider you pick actually needs to be set.
+    AI_PROVIDER = os.environ.get("AI_PROVIDER", "anthropic").strip().lower()
+
+    ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY")
+    ANTHROPIC_MODEL = os.environ.get("ANTHROPIC_MODEL", "claude-sonnet-4-5-20250929")
+
+    OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
+    OPENAI_MODEL = os.environ.get("OPENAI_MODEL", "gpt-4o-mini")
+
+    GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
+    # Google retires older Gemini model names periodically - if this default
+    # ever 404s with a "model no longer available" error, that error message
+    # itself names the current replacement; put that name in GEMINI_MODEL.
+    GEMINI_MODEL = os.environ.get("GEMINI_MODEL", "gemini-3.8-flash")
+
+    GROQ_API_KEY = os.environ.get("GROQ_API_KEY")
+    GROQ_MODEL = os.environ.get("GROQ_MODEL", "llama-3.3-70b-versatile")
+
+    # Where the "flask send-pl-summary" CLI command emails its monthly
+    # AI-written Profit & Loss narrative. Leave blank to skip that email
+    # (the on-demand "AI Summary" button on the Accounting dashboard works
+    # regardless of this setting).
+    ADMIN_NOTIFICATION_EMAIL = os.environ.get("ADMIN_NOTIFICATION_EMAIL")
+
     @staticmethod
     def validate():
         """

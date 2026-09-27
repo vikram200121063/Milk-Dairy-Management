@@ -8,11 +8,12 @@ from flask import (
     url_for,
     flash,
     current_app,
+    jsonify,
 )
 
 from app.utils.decorators import login_required
 from app.utils.id_generator import get_next_sequence
-from app.services import ledger_service
+from app.services import ai_service, ledger_service
 
 expenses_bp = Blueprint("expenses", __name__, url_prefix="/expenses")
 
@@ -125,6 +126,34 @@ def list_expenses():
         category=category,
         entry_type=entry_type,
     )
+
+
+@expenses_bp.route("/ai-extract", methods=["POST"])
+@login_required
+def ai_extract():
+    """
+    AJAX endpoint behind the "Scan Receipt" control on the Add/Edit Expense
+    form. Takes one uploaded receipt photo, asks Claude's vision to read
+    it, and returns a best-guess set of form field values - it never
+    writes an expense itself; the admin still reviews and submits the
+    form like normal.
+    """
+    upload = request.files.get("receipt")
+    if not upload or not upload.filename:
+        return jsonify({"error": "Please choose an image first."}), 400
+
+    media_type = upload.mimetype or ""
+    if not media_type.startswith("image/"):
+        return jsonify({"error": "Please upload an image file (JPEG, PNG, WEBP, or GIF)."}), 400
+
+    image_bytes = upload.read()
+    if not image_bytes:
+        return jsonify({"error": "That file appears to be empty."}), 400
+
+    data, error = ai_service.extract_receipt_data(image_bytes, media_type)
+    if error:
+        return jsonify({"error": error}), 200
+    return jsonify(data)
 
 
 @expenses_bp.route("/add", methods=["GET", "POST"])

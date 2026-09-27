@@ -8,10 +8,11 @@ from flask import (
     url_for,
     flash,
     current_app,
+    jsonify,
 )
 
 from app.utils.decorators import login_required
-from app.services import accounting_service, finance_settings_service, ledger_service
+from app.services import accounting_service, ai_service, finance_settings_service, ledger_service
 
 accounting_bp = Blueprint("accounting", __name__, url_prefix="/accounting")
 
@@ -88,6 +89,35 @@ def dashboard():
         custom_to=custom_to_str,
         today=date_cls.today().isoformat(),
     )
+
+
+@accounting_bp.route("/ai-summary", methods=["POST"])
+@login_required
+def ai_summary():
+    """
+    AJAX endpoint for the "AI Summary" button on the Accounting dashboard.
+    Re-resolves whatever range is currently selected there and asks Claude
+    to turn those same figures into a short plain-English narrative.
+    """
+    range_type = request.args.get("range", "today")
+    custom_from_str = request.args.get("from", "")
+    custom_to_str = request.args.get("to", "")
+
+    custom_from = custom_to = None
+    if range_type == "custom":
+        try:
+            custom_from = datetime.strptime(custom_from_str, "%Y-%m-%d").date()
+            custom_to = datetime.strptime(custom_to_str, "%Y-%m-%d").date()
+        except ValueError:
+            range_type = "today"
+
+    data = accounting_service.build_dashboard(current_app.db, range_type, custom_from, custom_to)
+    narrative, error = ai_service.generate_pnl_narrative(
+        data, data["range_label"], current_app.config.get("DAIRY_NAME", "the dairy")
+    )
+    if error:
+        return jsonify({"error": error}), 200
+    return jsonify({"summary": narrative})
 
 
 @accounting_bp.route("/settings", methods=["GET", "POST"])

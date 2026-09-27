@@ -36,6 +36,15 @@
                 </form>
 
                 <div class="text-center mt-4 pt-3 border-top">
+                    <a href="{{ url_for('auth.guest_login') }}" class="btn btn-outline-secondary w-100">
+                        View Live Demo
+                    </a>
+                    <div class="text-muted small mt-2">
+                        No password needed &ndash; browse live data (read-only, nothing you do is saved).
+                    </div>
+                </div>
+
+                <div class="text-center mt-4 pt-3 border-top">
                     <span class="text-muted small">Are you a dairy customer?</span>
                     <a href="{{ url_for('customer_portal.login') }}" class="small d-block mt-1">
                         Log in to your customer account →

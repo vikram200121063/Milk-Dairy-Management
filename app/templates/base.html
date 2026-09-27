@@ -21,6 +21,11 @@
 </head>
 <body class="{% block body_class %}{% endblock %}">
 
+    {% if is_guest %}
+    <div class="demo-mode-banner text-center small py-1" style="background:#f0ad4e; color:#3a2a00; font-weight:600;">
+        Demo Mode &mdash; read-only. You're viewing live data; nothing you do here is saved.
+    </div>
+    {% endif %}
     {% if session.get('user_id') %}
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
         <div class="container">
@@ -72,6 +77,7 @@
             </div>
         </div>
     </nav>
+    {% include "partials/ai_assistant_widget.html" %}
     {% elif session.get('customer_id') %}
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
         <div class="container">

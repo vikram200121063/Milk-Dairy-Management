@@ -26,6 +26,14 @@ def _avatar_dir():
 @profile_bp.route("/", methods=["GET", "POST"])
 @login_required
 def index():
+    # Guest sessions (see app/routes/auth.py's guest_login) have no real
+    # user document behind them - session["user_id"] is just a "guest"
+    # placeholder, not an ObjectId - so send them back before the lookup
+    # below, instead of letting it fail into a confusing error message.
+    if session.get("is_guest"):
+        flash("Profile settings aren't available in this read-only demo.", "info")
+        return redirect(url_for("dashboard.index"))
+
     db = current_app.db
     try:
         user = db.users.find_one({"_id": ObjectId(session["user_id"])})

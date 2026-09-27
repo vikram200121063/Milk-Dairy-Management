@@ -51,3 +51,32 @@ def logout():
     session.clear()
     flash("You have been logged out.", "info")
     return redirect(url_for("auth.login"))
+
+
+@auth_bp.route("/guest-login")
+def guest_login():
+    """
+    Public "View Live Demo" entry point - no password. Flags the session
+    `is_guest` and sends the visitor straight to the dashboard - they
+    browse this dairy's REAL, LIVE data (current_app.db, unchanged, same
+    as everyone else) but can never save a change: app/__init__.py's
+    before_request guard blocks every non-GET request for a guest
+    session before it reaches a route.
+
+    session["user_id"] is intentionally NOT a real user's id here (there
+    is no separate guest account) - it's just a truthy placeholder so the
+    admin nav renders. app/routes/profile.py explicitly checks
+    `is_guest` first and redirects away before it would otherwise try
+    (and fail) to look this up as a real user.
+    """
+    session.clear()
+    session["user_id"] = "guest"
+    session["username"] = "Guest Viewer"
+    session["profile_photo"] = None
+    session["is_guest"] = True
+    flash(
+        "You're viewing this dairy's live data in read-only mode – "
+        "nothing you add, edit, or delete here is actually saved.",
+        "info",
+    )
+    return redirect(url_for("dashboard.index"))

@@ -4,6 +4,7 @@ provider. For Gmail specifically you need an "App Password" (Google
 Account -> Security -> 2-Step Verification -> App Passwords); a normal
 account password will be rejected.
 """
+import html
 import smtplib
 from email.mime.application import MIMEApplication
 from email.mime.multipart import MIMEMultipart
@@ -175,23 +176,33 @@ def send_buyer_invoice_email(db, buyer, invoice, dairy_info):
     )
 
 
-def send_dunning_reminder_email(buyer, invoice, dairy_info, overdue_days):
+def send_dunning_reminder_email(buyer, invoice, dairy_info, overdue_days, custom_message=None):
     """
-    Sends a polite payment reminder for one overdue invoice. Deliberately
-    friendly in tone - this is the FIRST reminder, sent as soon as an
-    invoice goes overdue, before any grace period or interest applies.
+    Sends a payment reminder for one overdue invoice. By default this is a
+    gentle, generic paragraph - deliberately friendly, since this may be
+    the FIRST reminder sent as soon as an invoice goes overdue, before any
+    grace period or interest applies.
+
+    `custom_message` optionally replaces that generic paragraph with an
+    AI-drafted one (see app/services/ai_service.draft_dunning_paragraph and
+    dunning_service.send_dunning_reminder), tuned in tone to this buyer's
+    reminder history. Everything else about the email - subject, branding,
+    the invoice figures table - stays identical either way.
     """
     subject = f"Payment Reminder \u2013 Invoice {invoice['invoice_id']} ({dairy_info['name']})"
+    # custom_message is AI-generated plain text - escape it before dropping
+    # it into HTML, unlike the static fallback below which already IS HTML.
+    body_paragraph = html.escape(custom_message).replace("\n", "<br>") if custom_message else (
+        f"This is a gentle reminder that invoice <strong>{invoice['invoice_id']}</strong> "
+        f"for the billing period <strong>{invoice['billing_period']}</strong>, due on "
+        f"<strong>{invoice['due_date'].strftime('%d %b %Y')}</strong>, has not yet been settled. "
+        f"It is currently <strong>{overdue_days} day(s)</strong> past due."
+    )
     html_body = f"""
     <div style="font-family: Arial, sans-serif; max-width: 480px; margin: auto;">
-      <h2 style="color:#1F4A3A;">Friendly Payment Reminder</h2>
+      <h2 style="color:#1F4A3A;">Payment Reminder</h2>
       <p>Dear {buyer['contact_person'] or buyer['company_name']},</p>
-      <p>
-        This is a gentle reminder that invoice <strong>{invoice['invoice_id']}</strong>
-        for the billing period <strong>{invoice['billing_period']}</strong>, due on
-        <strong>{invoice['due_date'].strftime('%d %b %Y')}</strong>, has not yet been settled.
-        It is currently <strong>{overdue_days} day(s)</strong> past due.
-      </p>
+      <p>{body_paragraph}</p>
       <table style="width:100%; border-collapse: collapse; font-size:14px;">
         <tr><td style="padding:4px 0; color:#666;">Invoice Total</td><td style="padding:4px 0; text-align:right;">\u20b9{invoice['total_amount']:.2f}</td></tr>
         <tr><td style="padding:4px 0; color:#666;">Amount Paid</td><td style="padding:4px 0; text-align:right;">\u20b9{invoice['amount_paid']:.2f}</td></tr>
