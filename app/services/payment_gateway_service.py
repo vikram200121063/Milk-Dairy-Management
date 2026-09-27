@@ -31,14 +31,27 @@ import hmac
 import hashlib
 from datetime import datetime, timezone
 
-import razorpay
+# The razorpay package (and, transitively, its `import pkg_resources`
+# dependency on setuptools) is only needed for the two functions below
+# that actually call Razorpay's SDK (create_order, verify_payment_signature).
+# The webhook path (further down this file) is pure stdlib hmac/hashlib and
+# never touches this import at all. Wrapping the import means a missing or
+# broken razorpay/setuptools install degrades this ONE optional feature -
+# gateway_configured() below returns False and every "Pay Now" button
+# disappears - instead of crashing the entire app at startup, which is the
+# whole point of "gracefully degrades" described above.
+try:
+    import razorpay
+except ImportError:
+    razorpay = None
+
 from flask import current_app
 from pymongo.errors import DuplicateKeyError
 
 
 def gateway_configured():
     cfg = current_app.config
-    return bool(cfg.get("RAZORPAY_KEY_ID") and cfg.get("RAZORPAY_KEY_SECRET"))
+    return bool(razorpay and cfg.get("RAZORPAY_KEY_ID") and cfg.get("RAZORPAY_KEY_SECRET"))
 
 
 def _client():

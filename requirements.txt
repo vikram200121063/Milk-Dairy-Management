@@ -19,6 +19,14 @@ anthropic>=0.40.0,<1.0.0
 openai>=1.40.0,<2.0.0
 google-generativeai>=0.8.0,<1.0.0
 
+# setuptools is required by the razorpay package below (its client.py
+# does `import pkg_resources`, which lives in setuptools, not the
+# standard library). Newer Python/pip virtualenvs (e.g. Render's
+# Python 3.12 images) no longer install setuptools by default, so it
+# must be listed explicitly or deployment fails with
+# "ModuleNotFoundError: No module named 'pkg_resources'".
+setuptools>=70.0.0
+
 # Powers app/services/payment_gateway_service.py (online "Pay Now" via
 # Razorpay's Checkout) - optional, gated behind RAZORPAY_KEY_ID/
 # RAZORPAY_KEY_SECRET (see .env.example). Free to install and use in
@@ -29,4 +37,3 @@ razorpay>=1.4.2,<2.0.0
 # from a milk analyzer machine's exported .xlsx file). Pure-Python, free,
 # no account/API key needed. CSV imports use the standard library only.
 openpyxl>=3.1.0,<4.0.0
-setuptools>=70.0.0
