@@ -1,0 +1,119 @@
+{% extends "base.html" %}
+{% block title %}Import from Milk Machine - OM Dairy{% endblock %}
+
+{% block content %}
+{% set active = 'milk_entries' %}
+{% include "partials/customer_nav.html" %}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h2 class="mb-0">Import Milk Entries from Machine</h2>
+    <a href="{{ url_for('milk_entries.list_entries') }}" class="btn btn-outline-secondary">← Back to Milk Entries</a>
+</div>
+
+<div class="row">
+    <div class="col-lg-7">
+        <div class="card shadow-sm mb-4">
+            <div class="card-body p-4">
+                <h5 class="mb-3">1. Upload the machine's export file</h5>
+                <p class="text-muted small">
+                    Export the day's readings from your milk analyzer machine's own software as a
+                    CSV or Excel (.xlsx) file, then upload it below. Nothing is saved to your
+                    records yet — the next screen lets you review every row before confirming.
+                </p>
+
+                <form method="POST" action="{{ url_for('milk_entries.import_preview') }}" enctype="multipart/form-data">
+                    <div class="mb-3">
+                        <label class="form-label">Machine export file (.csv or .xlsx)</label>
+                        <input type="file" name="file" class="form-control" accept=".csv,.xlsx,.xlsm" required>
+                    </div>
+
+                    <div class="form-text mb-3">
+                        Only <strong>Machine Code</strong>, <strong>Fat%</strong>, <strong>SNF%</strong> and
+                        <strong>Quantity</strong> are required in the file. If it doesn't include a
+                        Date, Shift, or Milk Type column, set defaults for the whole batch below.
+                    </div>
+
+                    <div class="row g-2 mb-3">
+                        <div class="col-sm-4">
+                            <label class="form-label small mb-1">Default Date</label>
+                            <input type="date" name="default_date" class="form-control" value="{{ today }}">
+                        </div>
+                        <div class="col-sm-4">
+                            <label class="form-label small mb-1">Default Shift</label>
+                            <select name="default_shift" class="form-select">
+                                {% for s in shifts %}
+                                <option value="{{ s }}" {% if s == default_shift %}selected{% endif %}>{{ s }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-sm-4">
+                            <label class="form-label small mb-1">Default Milk Type</label>
+                            <select name="default_milk_type" class="form-select">
+                                {% for t in milk_types %}
+                                <option value="{{ t }}">{{ t }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary">Preview Import</button>
+                    <a href="{{ url_for('milk_entries.import_template') }}" class="btn btn-outline-secondary">
+                        ⬇ Download CSV Template
+                    </a>
+                </form>
+            </div>
+        </div>
+
+        <div class="card shadow-sm border-0" style="background: var(--color-cream-alt);">
+            <div class="card-body">
+                <h6 class="mb-2">Before your first import</h6>
+                <ol class="small mb-0 ps-3">
+                    <li>Open each customer's record and set their <strong>Milk Machine Code</strong>
+                        (Edit Customer → Milk Machine Code) to match the Card No / sample ID your
+                        machine assigns them. This is how imported rows get matched automatically.</li>
+                    <li>Rows whose machine code doesn't match any customer, or that duplicate an
+                        existing entry, are flagged (not silently skipped) on the review screen so
+                        you can fix them before confirming.</li>
+                    <li>Rates are always calculated automatically from Fat%/SNF% using your current
+                        <a href="{{ url_for('rate_config.list_configs') }}">Rate Configuration</a> — the
+                        same formula used for manual "Automatic" entries.</li>
+                </ol>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-5">
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <h6 class="mb-3">Recent Imports</h6>
+                {% if recent_imports %}
+                <div class="table-responsive">
+                    <table class="table table-sm align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>When</th>
+                                <th>File</th>
+                                <th class="text-end">Added</th>
+                                <th class="text-end">Skipped</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for imp in recent_imports %}
+                            <tr>
+                                <td class="small">{{ imp.imported_at.strftime('%d %b, %I:%M %p') }}</td>
+                                <td class="small text-truncate" style="max-width: 140px;" title="{{ imp.filename }}">{{ imp.filename }}</td>
+                                <td class="text-end text-success">{{ imp.inserted }}</td>
+                                <td class="text-end text-muted">{{ imp.skipped_duplicate + imp.skipped_invalid }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <p class="text-muted small mb-0">No imports yet.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

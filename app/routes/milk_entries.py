@@ -1,3 +1,5 @@
+import io
+import json
 from datetime import datetime, timezone, date as date_cls
 
 from bson import ObjectId
@@ -10,12 +12,15 @@ from flask import (
     url_for,
     flash,
     current_app,
+    session,
+    send_file,
 )
 from pymongo.errors import DuplicateKeyError
 
 from app.utils.decorators import login_required
+from app.utils.csv_export import csv_response
 from app.services.rate_service import calculate_rate
-from app.services import notification_service, ledger_service
+from app.services import notification_service, ledger_service, milk_import_service
 
 milk_entries_bp = Blueprint("milk_entries", __name__, url_prefix="/milk-entries")
 
@@ -122,14 +127,17 @@ def _read_and_validate_form(form):
     return errors, data
 
 
-@milk_entries_bp.route("/")
-@login_required
-def list_entries():
-    date_from = request.args.get("date_from", "")
-    date_to = request.args.get("date_to", "")
-    shift = request.args.get("shift", "")
-    milk_type = request.args.get("milk_type", "")
-    customer_id = request.args.get("customer_id", "")
+def _filters_from_args(args):
+    """
+    Shared by list_entries and export_csv so the two can never drift apart -
+    exporting should always match exactly what's on screen for the same
+    query string.
+    """
+    date_from = args.get("date_from", "")
+    date_to = args.get("date_to", "")
+    shift = args.get("shift", "")
+    milk_type = args.get("milk_type", "")
+    customer_id = args.get("customer_id", "")
 
     filters = {}
     date_filter = {}
@@ -151,6 +159,25 @@ def list_entries():
         filters["milk_type"] = milk_type
     if customer_id:
         filters["customer_id"] = customer_id
+
+    return filters, {
+        "date_from": date_from,
+        "date_to": date_to,
+        "shift": shift,
+        "milk_type": milk_type,
+        "customer_id": customer_id,
+    }
+
+
+@milk_entries_bp.route("/")
+@login_required
+def list_entries():
+    filters, parsed_args = _filters_from_args(request.args)
+    date_from = parsed_args["date_from"]
+    date_to = parsed_args["date_to"]
+    shift = parsed_args["shift"]
+    milk_type = parsed_args["milk_type"]
+    customer_id = parsed_args["customer_id"]
 
     entries = list(current_app.db.milk_entries.find(filters).sort("date", -1).limit(200))
 
@@ -177,6 +204,40 @@ def list_entries():
         default_notify_date=date_cls.today().isoformat(),
         default_notify_shift=_default_notify_shift(),
     )
+
+
+@milk_entries_bp.route("/export.csv")
+@login_required
+def export_csv():
+    """
+    Downloads every entry matching the current filters as CSV - unlike the
+    list page (capped at 200 rows for a fast page load), this has no limit,
+    since the whole point of exporting is to get everything.
+    """
+    filters, _ = _filters_from_args(request.args)
+    entries = current_app.db.milk_entries.find(filters).sort("date", -1)
+
+    header = [
+        "Date", "Shift", "Customer ID", "Customer Name", "Milk Type",
+        "Quantity (L)", "Fat %", "SNF %", "Rate/L", "Amount", "Notes",
+    ]
+    rows = (
+        [
+            e["date"].strftime("%Y-%m-%d"),
+            e["shift"],
+            e["customer_id"],
+            e["customer_name"],
+            e["milk_type"],
+            e["quantity"],
+            e["fat_percentage"],
+            e["snf_percentage"],
+            e["rate_per_litre"],
+            e["total_amount"],
+            e.get("notes", ""),
+        ]
+        for e in entries
+    )
+    return csv_response("milk_entries.csv", header, rows)
 
 
 @milk_entries_bp.route("/add", methods=["GET", "POST"])
@@ -456,5 +517,105 @@ def notify_bulk():
         f"Notified {len(entries)} customer(s) for {date_str} ({shift}) \u2013 "
         f"Email: {email_sent} sent / {email_failed} failed.",
         "info",
+    )
+    return redirect(url_for("milk_entries.list_entries"))
+
+
+# ---------------------------------------------------------------------------
+# Import from milk machine (bulk CSV/Excel upload)
+# ---------------------------------------------------------------------------
+
+
+@milk_entries_bp.route("/import")
+@login_required
+def import_page():
+    return render_template(
+        "milk_entries/import.html",
+        today=date_cls.today().isoformat(),
+        shifts=SHIFTS,
+        milk_types=MILK_TYPES,
+        default_shift=_default_notify_shift(),
+        recent_imports=milk_import_service.recent_imports(current_app.db),
+    )
+
+
+@milk_entries_bp.route("/import/template")
+@login_required
+def import_template():
+    csv_bytes = milk_import_service.generate_template_csv()
+    return send_file(
+        io.BytesIO(csv_bytes),
+        mimetype="text/csv",
+        as_attachment=True,
+        download_name="milk_machine_import_template.csv",
+    )
+
+
+@milk_entries_bp.route("/import/preview", methods=["POST"])
+@login_required
+def import_preview():
+    upload = request.files.get("file")
+    if not upload or not upload.filename:
+        flash("Please choose a file to upload.", "danger")
+        return redirect(url_for("milk_entries.import_page"))
+
+    default_date = request.form.get("default_date", "").strip()
+    default_shift = request.form.get("default_shift", "").strip()
+    default_milk_type = request.form.get("default_milk_type", "").strip()
+
+    raw_rows, parse_error = milk_import_service.parse_import_file(upload)
+    if parse_error:
+        flash(parse_error, "danger")
+        return redirect(url_for("milk_entries.import_page"))
+    if not raw_rows:
+        flash("No data rows found in that file.", "warning")
+        return redirect(url_for("milk_entries.import_page"))
+
+    preview = milk_import_service.build_preview(
+        current_app.db, raw_rows, default_date, default_shift, default_milk_type
+    )
+
+    counts = {
+        "ready": sum(1 for r in preview if r["status"] == "ready"),
+        "duplicate": sum(1 for r in preview if r["status"] == "duplicate"),
+        "unknown_code": sum(1 for r in preview if r["status"] == "unknown_code"),
+        "invalid": sum(1 for r in preview if r["status"] == "invalid"),
+    }
+
+    return render_template(
+        "milk_entries/import_preview.html",
+        preview=preview,
+        counts=counts,
+        filename=upload.filename,
+        preview_json=json.dumps([r for r in preview if r["status"] == "ready"]),
+    )
+
+
+@milk_entries_bp.route("/import/commit", methods=["POST"])
+@login_required
+def import_commit():
+    filename = request.form.get("filename", "milk_machine_import.csv")
+    payload = request.form.get("rows_json", "[]")
+    selected_row_numbers = set(request.form.getlist("include_row"))
+
+    try:
+        rows = json.loads(payload)
+    except (TypeError, ValueError):
+        flash("The import session expired or was corrupted. Please upload the file again.", "danger")
+        return redirect(url_for("milk_entries.import_page"))
+
+    rows_to_commit = [r for r in rows if str(r.get("row_number")) in selected_row_numbers]
+    if not rows_to_commit:
+        flash("No rows were selected to import.", "warning")
+        return redirect(url_for("milk_entries.import_page"))
+
+    imported_by = session.get("username", session.get("user_id", "admin"))
+    summary = milk_import_service.commit_import(current_app.db, rows_to_commit, filename, imported_by)
+
+    flash(
+        f"Import complete: {summary['inserted']} entr{'y' if summary['inserted'] == 1 else 'ies'} added, "
+        f"{summary['skipped_duplicate']} duplicate(s) skipped, "
+        f"{summary['skipped_invalid']} row(s) skipped as invalid.",
+        "success" if summary["inserted"] else "warning",
     )
     return redirect(url_for("milk_entries.list_entries"))

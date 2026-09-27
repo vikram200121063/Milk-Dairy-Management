@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+{% block title %}Manage Staff - OM Dairy{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h2 class="mb-0">Manage Staff</h2>
+    <a href="{{ url_for('users.add_user') }}" class="btn btn-primary">+ Add Account</a>
+</div>
+<p class="text-muted">
+    <strong>Owner</strong> accounts have full access to everything. <strong>Staff</strong>
+    accounts can add customers and record milk entries (including machine import), but
+    never see revenue, buyer/accounting data, payments, or rate configuration.
+</p>
+
+<div class="card shadow-sm">
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>Username</th>
+                    <th>Role</th>
+                    <th>Created</th>
+                    <th class="text-end">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for account in accounts %}
+                <tr>
+                    <td>
+                        {{ account.username }}
+                        {% if account.username == session.get('username') %}
+                            <span class="badge bg-light text-dark border ms-1">You</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <span class="badge {{ 'bg-primary' if is_owner_doc(account) else 'bg-secondary' }}">
+                            {{ 'Owner' if is_owner_doc(account) else 'Staff' }}
+                        </span>
+                    </td>
+                    <td>{{ account.created_at.strftime('%d %b %Y') if account.created_at else '—' }}</td>
+                    <td class="text-end">
+                        <a
+                            href="{{ url_for('users.reset_password', username=account.username) }}"
+                            class="btn btn-sm btn-outline-secondary"
+                        >Reset Password</a>
+
+                        {% if account.username != session.get('username') %}
+                        {% if is_owner_doc(account) %}
+                        <form
+                            method="POST"
+                            action="{{ url_for('users.change_role', username=account.username) }}"
+                            class="d-inline"
+                            onsubmit="return confirm('Make {{ account.username }} a Staff account?');"
+                        >
+                            <input type="hidden" name="role" value="Staff">
+                            <button type="submit" class="btn btn-sm btn-outline-secondary">Make Staff</button>
+                        </form>
+                        {% else %}
+                        <form
+                            method="POST"
+                            action="{{ url_for('users.change_role', username=account.username) }}"
+                            class="d-inline"
+                        >
+                            <input type="hidden" name="role" value="Owner">
+                            <button type="submit" class="btn btn-sm btn-outline-primary">Make Owner</button>
+                        </form>
+                        {% endif %}
+                        <form
+                            method="POST"
+                            action="{{ url_for('users.delete_user', username=account.username) }}"
+                            class="d-inline"
+                            onsubmit="return confirm('Delete account {{ account.username }}? This cannot be undone.');"
+                        >
+                            <button type="submit" class="btn btn-sm btn-outline-danger">Delete</button>
+                        </form>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="4" class="text-center text-muted py-4">No accounts found.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

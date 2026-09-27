@@ -1,0 +1,11 @@
+# Extra packages needed only to run the test suite (tests/) - never
+# needed to run the app itself, and not installed on Render.
+# Install alongside the app's own requirements:
+#   pip install -r requirements.txt -r requirements-dev.txt
+#
+# pytest is the only real addition here. The tests use an in-memory,
+# stdlib-only stand-in for MongoDB (tests/fake_mongo.py) and a stand-in
+# for the Razorpay SDK (tests/_fakes/razorpay), both included in the repo,
+# so no other test-only package, real database, or paid account is
+# needed - running the suite is completely free.
+pytest>=7.4.0,<9.0.0

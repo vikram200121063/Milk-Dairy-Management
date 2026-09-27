@@ -12,7 +12,7 @@ from flask import (
     current_app,
 )
 
-from app.utils.decorators import login_required
+from app.utils.decorators import owner_required
 from app.utils.id_generator import get_next_sequence
 from app.services.rate_service import MILK_TYPES
 from app.services import finance_settings_service, ledger_service
@@ -99,7 +99,7 @@ def _compute_amounts(quantity, rate, tax_percentage, other_charges):
 
 
 @buyer_sales_bp.route("/")
-@login_required
+@owner_required
 def list_sales():
     date_from = request.args.get("date_from", "")
     date_to = request.args.get("date_to", "")
@@ -150,7 +150,7 @@ def list_sales():
 
 
 @buyer_sales_bp.route("/add", methods=["GET", "POST"])
-@login_required
+@owner_required
 def add_sale():
     active_buyers = list(current_app.db.buyers.find({"status": "Active"}).sort("company_name", 1))
     settings = finance_settings_service.get_settings(current_app.db)
@@ -224,7 +224,7 @@ def add_sale():
 
 
 @buyer_sales_bp.route("/edit/<sale_id>", methods=["GET", "POST"])
-@login_required
+@owner_required
 def edit_sale(sale_id):
     sale = current_app.db.buyer_sales.find_one({"sale_id": sale_id})
     if not sale:
@@ -305,7 +305,7 @@ def edit_sale(sale_id):
 
 
 @buyer_sales_bp.route("/delete/<sale_id>", methods=["POST"])
-@login_required
+@owner_required
 def delete_sale(sale_id):
     sale = current_app.db.buyer_sales.find_one({"sale_id": sale_id})
     if not sale:

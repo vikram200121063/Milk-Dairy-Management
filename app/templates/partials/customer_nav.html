@@ -3,7 +3,9 @@
 <nav class="section-nav">
     <a class="{{ 'active' if active == 'customers' }}" href="{{ url_for('customers.list_customers') }}">Customers</a>
     <a class="{{ 'active' if active == 'milk_entries' }}" href="{{ url_for('milk_entries.list_entries') }}">Milk Entries</a>
+    {% if session.get('role', 'Owner') == 'Owner' %}
     <a class="{{ 'active' if active == 'rate_config' }}" href="{{ url_for('rate_config.list_configs') }}">Rate Config</a>
     <a class="{{ 'active' if active == 'payments' }}" href="{{ url_for('payments.list_payments') }}">Payments</a>
     <a class="{{ 'active' if active == 'notifications' }}" href="{{ url_for('notifications.list_notifications') }}">Notifications</a>
+    {% endif %}
 </nav>

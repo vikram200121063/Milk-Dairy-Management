@@ -1,0 +1,107 @@
+{% extends "base.html" %}
+{% block title %}Pay Invoice {{ invoice.invoice_id }} - {{ dairy_name }}{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6 col-lg-5">
+        <div class="card shadow-sm">
+            <div class="card-body p-4">
+                <h4 class="mb-1">{{ dairy_name }}</h4>
+                <div class="text-muted mb-4">Invoice {{ invoice.invoice_id }} &middot; {{ invoice.billing_period }}</div>
+
+                <table class="table table-sm mb-4">
+                    <tr><td>Billed to</td><td class="text-end">{{ invoice.buyer_name }}</td></tr>
+                    <tr><td>Total Amount</td><td class="text-end">&#8377;{{ "%.2f"|format(invoice.total_amount) }}</td></tr>
+                    <tr><td>Already Paid</td><td class="text-end text-success">&#8377;{{ "%.2f"|format(invoice.amount_paid) }}</td></tr>
+                    <tr class="table-light"><td><strong>Amount Due</strong></td><td class="text-end"><strong>&#8377;{{ "%.2f"|format(invoice.remaining_amount) }}</strong></td></tr>
+                </table>
+
+                {% if invoice.remaining_amount <= 0 %}
+                    <div class="alert alert-success mb-0">This invoice is fully paid. Thank you!</div>
+                {% elif not payments_enabled %}
+                    <div class="alert alert-warning mb-0">
+                        Online payment isn't set up yet for this dairy. Please contact them directly to pay this invoice.
+                    </div>
+                {% else %}
+                    <div id="pay-error" class="alert alert-danger d-none"></div>
+                    <button id="pay-btn" type="button" class="btn btn-primary w-100 py-2">
+                        Pay &#8377;{{ "%.2f"|format(invoice.remaining_amount) }} Now
+                    </button>
+                    <div class="text-muted small mt-2 text-center">
+                        Secured by Razorpay &middot; UPI, cards &amp; netbanking accepted
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+{% if payments_enabled and invoice.remaining_amount > 0 %}
+<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+<script>
+(function () {
+    var btn = document.getElementById("pay-btn");
+    var errorBox = document.getElementById("pay-error");
+
+    function showError(message) {
+        errorBox.textContent = message;
+        errorBox.classList.remove("d-none");
+    }
+
+    btn.addEventListener("click", function () {
+        btn.disabled = true;
+        errorBox.classList.add("d-none");
+
+        fetch("{{ url_for('pay.create_invoice_order', token=token) }}", { method: "POST" })
+            .then(function (resp) { return resp.json().then(function (data) { return { ok: resp.ok, data: data }; }); })
+            .then(function (result) {
+                if (!result.ok) {
+                    throw new Error((result.data && result.data.error) || "Could not start the payment.");
+                }
+                var order = result.data;
+                var rzp = new Razorpay({
+                    key: order.key_id,
+                    amount: order.amount,
+                    currency: "INR",
+                    name: order.dairy_name || "{{ dairy_name }}",
+                    description: "Invoice {{ invoice.invoice_id }}",
+                    order_id: order.order_id,
+                    prefill: { name: order.buyer_name || "" },
+                    handler: function (response) {
+                        fetch("{{ url_for('pay.verify_invoice_order', token=token) }}", {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify(response),
+                        })
+                            .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, data: d }; }); })
+                            .then(function (r) {
+                                if (!r.ok) throw new Error((r.data && r.data.error) || "Payment could not be verified.");
+                                window.location.reload();
+                            })
+                            .catch(function (err) {
+                                showError(err.message);
+                                btn.disabled = false;
+                            });
+                    },
+                    modal: {
+                        ondismiss: function () { btn.disabled = false; },
+                    },
+                    theme: { color: "#1F4A3A" },
+                });
+                rzp.on("payment.failed", function (resp) {
+                    showError((resp.error && resp.error.description) || "Payment failed. Please try again.");
+                    btn.disabled = false;
+                });
+                rzp.open();
+            })
+            .catch(function (err) {
+                showError(err.message);
+                btn.disabled = false;
+            });
+    });
+})();
+</script>
+{% endif %}
+{% endblock %}

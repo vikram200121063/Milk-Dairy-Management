@@ -11,7 +11,7 @@ from flask import (
     jsonify,
 )
 
-from app.utils.decorators import login_required
+from app.utils.decorators import owner_required
 from app.utils.id_generator import get_next_sequence
 from app.services import ai_service, ledger_service
 
@@ -82,7 +82,7 @@ def _read_and_validate_form(form):
 
 
 @expenses_bp.route("/")
-@login_required
+@owner_required
 def list_expenses():
     date_from = request.args.get("date_from", "")
     date_to = request.args.get("date_to", "")
@@ -129,7 +129,7 @@ def list_expenses():
 
 
 @expenses_bp.route("/ai-extract", methods=["POST"])
-@login_required
+@owner_required
 def ai_extract():
     """
     AJAX endpoint behind the "Scan Receipt" control on the Add/Edit Expense
@@ -157,7 +157,7 @@ def ai_extract():
 
 
 @expenses_bp.route("/add", methods=["GET", "POST"])
-@login_required
+@owner_required
 def add_expense():
     if request.method == "POST":
         errors, data = _read_and_validate_form(request.form)
@@ -199,7 +199,7 @@ def add_expense():
 
 
 @expenses_bp.route("/edit/<expense_id>", methods=["GET", "POST"])
-@login_required
+@owner_required
 def edit_expense(expense_id):
     entry = current_app.db.expenses.find_one({"expense_id": expense_id})
     if not entry:
@@ -241,7 +241,7 @@ def edit_expense(expense_id):
 
 
 @expenses_bp.route("/delete/<expense_id>", methods=["POST"])
-@login_required
+@owner_required
 def delete_expense(expense_id):
     current_app.db.expenses.delete_one({"expense_id": expense_id})
     # Common Accounting module: remove the corresponding ledger entries too.

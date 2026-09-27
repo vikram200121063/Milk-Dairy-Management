@@ -1,0 +1,125 @@
+{% extends "base.html" %}
+{% block title %}Review Import - OM Dairy{% endblock %}
+
+{% block content %}
+{% set active = 'milk_entries' %}
+{% include "partials/customer_nav.html" %}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h2 class="mb-0">Review Import: {{ filename }}</h2>
+    <a href="{{ url_for('milk_entries.import_page') }}" class="btn btn-outline-secondary">← Upload a different file</a>
+</div>
+
+<div class="row mb-3">
+    <div class="col-6 col-md-3">
+        <div class="card shadow-sm text-center p-2 border-success">
+            <div class="text-muted small">Ready to Import</div>
+            <div class="fs-4 fw-bold text-success">{{ counts.ready }}</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card shadow-sm text-center p-2">
+            <div class="text-muted small">Duplicates</div>
+            <div class="fs-4 fw-bold text-secondary">{{ counts.duplicate }}</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card shadow-sm text-center p-2">
+            <div class="text-muted small">Unknown Machine Code</div>
+            <div class="fs-4 fw-bold text-warning">{{ counts.unknown_code }}</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card shadow-sm text-center p-2">
+            <div class="text-muted small">Invalid Rows</div>
+            <div class="fs-4 fw-bold text-danger">{{ counts.invalid }}</div>
+        </div>
+    </div>
+</div>
+
+{% if counts.unknown_code > 0 %}
+<div class="alert alert-warning">
+    Some rows have a machine code that doesn't match any customer. Set that customer's
+    <strong>Milk Machine Code</strong> under <a href="{{ url_for('customers.list_customers') }}">Customers → Edit</a>,
+    then re-upload the file — those rows are skipped for now and nothing is lost.
+</div>
+{% endif %}
+
+<form method="POST" action="{{ url_for('milk_entries.import_commit') }}">
+    <input type="hidden" name="filename" value="{{ filename }}">
+    <input type="hidden" name="rows_json" value='{{ preview_json }}'>
+
+    <div class="card shadow-sm mb-3">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>
+                            <input type="checkbox" id="select-all" checked>
+                        </th>
+                        <th>Row</th>
+                        <th>Machine Code</th>
+                        <th>Customer</th>
+                        <th>Date</th>
+                        <th>Shift</th>
+                        <th>Type</th>
+                        <th>Qty (L)</th>
+                        <th>Fat%</th>
+                        <th>SNF%</th>
+                        <th>Rate</th>
+                        <th>Amount</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in preview %}
+                    <tr class="{% if row.status != 'ready' %}table-light text-muted{% endif %}">
+                        <td>
+                            {% if row.status == 'ready' %}
+                            <input type="checkbox" name="include_row" value="{{ row.row_number }}" checked class="row-check">
+                            {% endif %}
+                        </td>
+                        <td>{{ row.row_number }}</td>
+                        <td>{{ row.machine_code or '—' }}</td>
+                        <td>{{ row.customer_name or '—' }}</td>
+                        <td>{{ row.date_str or '—' }}</td>
+                        <td>{{ row.shift or '—' }}</td>
+                        <td>{{ row.milk_type or '—' }}</td>
+                        <td>{{ '%.2f'|format(row.quantity) if row.quantity is not none else '—' }}</td>
+                        <td>{{ row.fat_percentage if row.fat_percentage is not none else '—' }}</td>
+                        <td>{{ row.snf_percentage if row.snf_percentage is not none else '—' }}</td>
+                        <td>{{ '₹%.2f'|format(row.rate_per_litre) if row.rate_per_litre is not none else '—' }}</td>
+                        <td>{{ '₹%.2f'|format(row.total_amount) if row.total_amount is not none else '—' }}</td>
+                        <td>
+                            {% if row.status == 'ready' %}
+                                <span class="badge bg-success">Ready</span>
+                            {% elif row.status == 'duplicate' %}
+                                <span class="badge bg-secondary" title="An entry already exists for this customer/date/shift">Duplicate</span>
+                            {% elif row.status == 'unknown_code' %}
+                                <span class="badge bg-warning text-dark" title="No customer has this machine code">Unknown Code</span>
+                            {% else %}
+                                <span class="badge bg-danger" title="{{ row.errors|join('; ') }}">Invalid</span>
+                            {% endif %}
+                            {% if row.status == 'invalid' %}
+                            <div class="small text-danger mt-1">{{ row.errors|join('; ') }}</div>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <button type="submit" class="btn btn-primary" {% if counts.ready == 0 %}disabled{% endif %}>
+        Confirm Import ({{ counts.ready }} row{{ '' if counts.ready == 1 else 's' }})
+    </button>
+    <a href="{{ url_for('milk_entries.import_page') }}" class="btn btn-outline-secondary">Cancel</a>
+</form>
+
+<script>
+document.getElementById('select-all').addEventListener('change', function () {
+    document.querySelectorAll('.row-check').forEach(function (cb) { cb.checked = this.checked; }, this);
+});
+</script>
+{% endblock %}

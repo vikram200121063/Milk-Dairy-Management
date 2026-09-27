@@ -65,6 +65,24 @@
                         <textarea name="address" class="form-control" rows="2">{{ customer.address or '' }}</textarea>
                     </div>
 
+                    <div class="mb-3">
+                        <label class="form-label">Milk Machine Code <span class="text-muted small">(optional)</span></label>
+                        <input
+                            type="text"
+                            name="machine_code"
+                            class="form-control"
+                            value="{{ customer.machine_code or '' }}"
+                            placeholder="e.g. 104"
+                        >
+                        <div class="form-text">
+                            The Card No / sample code your milk analyzer machine assigns this
+                            customer. Set this once and the
+                            <a href="{{ url_for('milk_entries.import_page') }}">Import from Machine</a>
+                            tool can then match the machine's exported readings straight to this
+                            customer automatically.
+                        </div>
+                    </div>
+
                     <div class="d-flex gap-2">
                         <button type="submit" class="btn btn-primary">
                             {{ 'Save Changes' if mode == 'edit' else 'Add Customer' }}

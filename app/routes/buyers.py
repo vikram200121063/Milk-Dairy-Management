@@ -11,7 +11,7 @@ from flask import (
     current_app,
 )
 
-from app.utils.decorators import login_required
+from app.utils.decorators import owner_required
 from app.utils.id_generator import get_next_sequence
 from app.routes.customers import MOBILE_RE, EMAIL_RE
 from app.services import finance_settings_service, ledger_service
@@ -69,7 +69,7 @@ def _read_and_validate_form(form, settings):
 
 
 @buyers_bp.route("/")
-@login_required
+@owner_required
 def list_buyers():
     query_text = request.args.get("q", "").strip()
     status_filter = request.args.get("status", "")
@@ -111,7 +111,7 @@ def list_buyers():
 
 
 @buyers_bp.route("/add", methods=["GET", "POST"])
-@login_required
+@owner_required
 def add_buyer():
     settings = finance_settings_service.get_settings(current_app.db)
 
@@ -157,7 +157,7 @@ def add_buyer():
 
 
 @buyers_bp.route("/edit/<buyer_id>", methods=["GET", "POST"])
-@login_required
+@owner_required
 def edit_buyer(buyer_id):
     buyer = current_app.db.buyers.find_one({"buyer_id": buyer_id})
     if not buyer:
@@ -210,7 +210,7 @@ def edit_buyer(buyer_id):
 
 
 @buyers_bp.route("/<buyer_id>")
-@login_required
+@owner_required
 def profile(buyer_id):
     buyer = current_app.db.buyers.find_one({"buyer_id": buyer_id})
     if not buyer:
@@ -228,7 +228,7 @@ def profile(buyer_id):
 
 
 @buyers_bp.route("/deactivate/<buyer_id>", methods=["POST"])
-@login_required
+@owner_required
 def deactivate(buyer_id):
     current_app.db.buyers.update_one({"buyer_id": buyer_id}, {"$set": {"status": "Inactive"}})
     flash(f"Buyer {buyer_id} marked inactive.", "info")
@@ -236,7 +236,7 @@ def deactivate(buyer_id):
 
 
 @buyers_bp.route("/activate/<buyer_id>", methods=["POST"])
-@login_required
+@owner_required
 def activate(buyer_id):
     current_app.db.buyers.update_one({"buyer_id": buyer_id}, {"$set": {"status": "Active"}})
     flash(f"Buyer {buyer_id} reactivated.", "info")

@@ -11,14 +11,14 @@ from flask import (
     jsonify,
 )
 
-from app.utils.decorators import login_required
+from app.utils.decorators import owner_required
 from app.services.rate_service import calculate_rate, MILK_TYPES
 
 rate_config_bp = Blueprint("rate_config", __name__, url_prefix="/rate-config")
 
 
 @rate_config_bp.route("/")
-@login_required
+@owner_required
 def list_configs():
     configs = {
         milk_type: current_app.db.rate_configurations.find_one({"milk_type": milk_type})
@@ -28,7 +28,7 @@ def list_configs():
 
 
 @rate_config_bp.route("/edit/<milk_type>", methods=["GET", "POST"])
-@login_required
+@owner_required
 def edit_config(milk_type):
     if milk_type not in MILK_TYPES:
         flash("Invalid milk type.", "danger")
@@ -78,7 +78,7 @@ def edit_config(milk_type):
 
 
 @rate_config_bp.route("/calculate")
-@login_required
+@owner_required
 def calculate_preview():
     """
     Small JSON endpoint used by the milk entry form's JavaScript to show a

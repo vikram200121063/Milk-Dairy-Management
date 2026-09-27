@@ -26,6 +26,11 @@
         <a href="{{ url_for('buyer_invoices.invoice_view', invoice_id=invoice.invoice_id) }}" class="btn btn-outline-primary">
             View Invoice
         </a>
+        {% if payments_enabled and invoice.remaining_amount > 0 %}
+        <button type="button" id="copy-pay-link-btn" class="btn btn-outline-success" data-link="{{ pay_link }}" title="Copy a link the buyer can open to pay this invoice online, no login needed">
+            &#128279; Copy Payment Link
+        </button>
+        {% endif %}
         <form method="POST" action="{{ url_for('buyer_invoices.notify', invoice_id=invoice.invoice_id) }}" class="d-inline">
             <button type="submit" class="btn btn-outline-secondary" title="Email invoice to buyer">
                 &#128231; Email Invoice
@@ -255,4 +260,22 @@
 <a href="{{ url_for('buyer_invoices.list_invoices', year=invoice.period_start.year, month=invoice.period_start.month, period=invoice.billing_period.split('-B')[1]) }}" class="btn btn-outline-secondary">
     &larr; Back to Buyer Invoices
 </a>
+{% endblock %}
+
+{% block extra_scripts %}
+{% if payments_enabled and invoice.remaining_amount > 0 %}
+<script>
+document.getElementById("copy-pay-link-btn").addEventListener("click", function () {
+    var link = this.getAttribute("data-link");
+    var btn = this;
+    navigator.clipboard.writeText(link).then(function () {
+        var original = btn.innerHTML;
+        btn.innerHTML = "&#10003; Link Copied";
+        setTimeout(function () { btn.innerHTML = original; }, 2000);
+    }).catch(function () {
+        window.prompt("Copy this payment link:", link);
+    });
+});
+</script>
+{% endif %}
 {% endblock %}

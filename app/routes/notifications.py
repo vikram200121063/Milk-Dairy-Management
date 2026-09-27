@@ -1,12 +1,12 @@
 from flask import Blueprint, render_template, request, current_app
 
-from app.utils.decorators import login_required
+from app.utils.decorators import owner_required
 
 notifications_bp = Blueprint("notifications", __name__, url_prefix="/notifications")
 
 
 @notifications_bp.route("/")
-@login_required
+@owner_required
 def list_notifications():
     notif_type = request.args.get("type", "")
     channel = request.args.get("channel", "")

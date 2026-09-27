@@ -11,7 +11,7 @@ from flask import (
     jsonify,
 )
 
-from app.utils.decorators import login_required
+from app.utils.decorators import owner_required
 from app.services import accounting_service, ai_service, finance_settings_service, ledger_service
 
 accounting_bp = Blueprint("accounting", __name__, url_prefix="/accounting")
@@ -53,7 +53,7 @@ def _parse_range(default_range_type="this_month"):
 
 
 @accounting_bp.route("/")
-@login_required
+@owner_required
 def dashboard():
     range_type = request.args.get("range", "today")
     custom_from_str = request.args.get("from", "")
@@ -92,7 +92,7 @@ def dashboard():
 
 
 @accounting_bp.route("/ai-summary", methods=["POST"])
-@login_required
+@owner_required
 def ai_summary():
     """
     AJAX endpoint for the "AI Summary" button on the Accounting dashboard.
@@ -121,7 +121,7 @@ def ai_summary():
 
 
 @accounting_bp.route("/settings", methods=["GET", "POST"])
-@login_required
+@owner_required
 def settings():
     if request.method == "POST":
         errors = []
@@ -167,7 +167,7 @@ def settings():
 
 
 @accounting_bp.route("/receivables")
-@login_required
+@owner_required
 def receivables():
     rows = ledger_service.receivables_list(current_app.db)
     total_outstanding = round(sum(r["balance"] for r in rows), 2)
@@ -181,7 +181,7 @@ def receivables():
 
 
 @accounting_bp.route("/receivables/<buyer_id>")
-@login_required
+@owner_required
 def receivable_detail(buyer_id):
     buyer = current_app.db.buyers.find_one({"buyer_id": buyer_id})
     if not buyer:
@@ -197,7 +197,7 @@ def receivable_detail(buyer_id):
 
 
 @accounting_bp.route("/payables")
-@login_required
+@owner_required
 def payables():
     rows = ledger_service.payables_list(current_app.db)
     total_outstanding = round(sum(r["balance"] for r in rows), 2)
@@ -205,7 +205,7 @@ def payables():
 
 
 @accounting_bp.route("/payables/<customer_id>")
-@login_required
+@owner_required
 def payable_detail(customer_id):
     customer = current_app.db.customers.find_one({"customer_id": customer_id})
     if not customer:
@@ -221,7 +221,7 @@ def payable_detail(customer_id):
 
 
 @accounting_bp.route("/revenue")
-@login_required
+@owner_required
 def revenue():
     start, end, label, range_type, custom_from, custom_to = _parse_range()
     data = accounting_service.revenue_report(current_app.db, start, end)
@@ -243,7 +243,7 @@ def revenue():
 
 
 @accounting_bp.route("/expense-report")
-@login_required
+@owner_required
 def expense_report():
     start, end, label, range_type, custom_from, custom_to = _parse_range()
     data = accounting_service.expense_report(current_app.db, start, end)
@@ -265,7 +265,7 @@ def expense_report():
 
 
 @accounting_bp.route("/cash-bank")
-@login_required
+@owner_required
 def cash_bank():
     start, end, label, range_type, custom_from, custom_to = _parse_range()
     summary = accounting_service.cash_bank_summary(current_app.db, start, end)
@@ -289,7 +289,7 @@ def cash_bank():
 
 
 @accounting_bp.route("/pnl")
-@login_required
+@owner_required
 def pnl():
     start, end, label, range_type, custom_from, custom_to = _parse_range()
     data = accounting_service.profit_and_loss(current_app.db, start, end)

@@ -94,6 +94,31 @@ class Config:
     # regardless of this setting).
     ADMIN_NOTIFICATION_EMAIL = os.environ.get("ADMIN_NOTIFICATION_EMAIL")
 
+    # --- Online payments (Razorpay) ---
+    # Powers the customer portal's "Pay Now" button and the shareable
+    # buyer invoice payment link (app/services/payment_gateway_service.py).
+    # Leave both blank to disable online payments entirely - every payment
+    # screen falls back to the existing manual "record a payment"
+    # form, exactly as before this feature existed.
+    #
+    # Get free TEST-mode keys (no KYC, no fees, no real money moves) at
+    # https://dashboard.razorpay.com/app/keys -> toggle "Test Mode" on,
+    # then "Generate Test Key". Switching to LIVE keys later (real money,
+    # requires business KYC, ~2% transaction fee) needs no code change -
+    # just replace these two values.
+    RAZORPAY_KEY_ID = os.environ.get("RAZORPAY_KEY_ID")
+    RAZORPAY_KEY_SECRET = os.environ.get("RAZORPAY_KEY_SECRET")
+
+    # Optional but recommended once RAZORPAY_KEY_ID/SECRET are set: a
+    # webhook lets Razorpay confirm a payment even if the buyer/customer's
+    # browser never makes it back to our "verify" call (closed tab, lost
+    # connection). Get this from Razorpay Dashboard -> Settings -> Webhooks
+    # after adding https://<your-app-domain>/pay/webhook there, subscribed
+    # to the "payment.captured" event - it's a different value from
+    # RAZORPAY_KEY_SECRET. Leave blank and the app works exactly as before
+    # (browser-only confirmation) - see app/routes/pay.py's webhook() route.
+    RAZORPAY_WEBHOOK_SECRET = os.environ.get("RAZORPAY_WEBHOOK_SECRET")
+
     @staticmethod
     def validate():
         """

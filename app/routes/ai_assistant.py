@@ -8,7 +8,7 @@ work.
 from flask import Blueprint, current_app, jsonify, request, session
 
 from app.services import ai_service
-from app.utils.decorators import login_required
+from app.utils.decorators import owner_required_json
 
 ai_bp = Blueprint("ai_assistant", __name__, url_prefix="/ai")
 
@@ -18,7 +18,7 @@ MAX_HISTORY_TURNS = 3
 
 
 @ai_bp.route("/ask", methods=["POST"])
-@login_required
+@owner_required_json
 def ask():
     payload = request.get_json(silent=True) or {}
     question = (payload.get("question") or "").strip()
@@ -44,7 +44,7 @@ def ask():
 
 
 @ai_bp.route("/reset", methods=["POST"])
-@login_required
+@owner_required_json
 def reset():
     session.pop("ai_chat_history", None)
     return jsonify({"ok": True})

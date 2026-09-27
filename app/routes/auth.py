@@ -36,6 +36,9 @@ def login():
             session["user_id"] = str(user["_id"])
             session["username"] = user["username"]
             session["profile_photo"] = user.get("profile_photo")
+            # Accounts created before roles existed have no "role" field;
+            # default them to "Owner" so nobody loses access silently.
+            session["role"] = user.get("role", "Owner")
             flash(f"Welcome back, {user['username']}!", "success")
 
             next_page = request.args.get("next")

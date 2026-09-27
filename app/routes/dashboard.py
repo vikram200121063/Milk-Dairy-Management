@@ -151,6 +151,22 @@ def index():
     overdue = financials["overdue"]
     pending_customer_payments = accounting_service.pending_customer_payments_summary(db)
 
+    # A "Staff" login (see @owner_required) never sees money figures on the
+    # dashboard - the template already hides the revenue/finance cards and
+    # the Recent Activity feed for them, but that alone isn't enough: the
+    # chart data below gets embedded straight into the page's HTML as JSON
+    # for Chart.js to read, and unlike a template block a script tag's
+    # contents are visible in "View Source" even when nothing renders it
+    # on screen. So for Staff we strip the money-carrying series (revenue,
+    # expense) out of `trends` here, server-side, before it ever reaches
+    # the template - not just hide them with a template conditional.
+    is_owner = session.get("role", "Owner") == "Owner"
+    if not is_owner:
+        trends = {"labels": trends["labels"], "milk_quantity": trends["milk_quantity"]}
+        today_revenue = receivable_balance = payable_balance = None
+        financials = None
+        activity = []
+
     return render_template(
         "dashboard.html",
         username=session.get("username"),

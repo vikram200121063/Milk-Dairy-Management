@@ -145,7 +145,9 @@ def create_app():
     from app.routes.accounting import accounting_bp
     from app.routes.about import about_bp
     from app.routes.profile import profile_bp
+    from app.routes.users import users_bp
     from app.routes.ai_assistant import ai_bp
+    from app.routes.pay import pay_bp
 
     app.register_blueprint(auth_bp)
     app.register_blueprint(dashboard_bp)
@@ -163,7 +165,9 @@ def create_app():
     app.register_blueprint(accounting_bp)
     app.register_blueprint(about_bp)
     app.register_blueprint(profile_bp)
+    app.register_blueprint(users_bp)
     app.register_blueprint(ai_bp)
+    app.register_blueprint(pay_bp)
 
     # --- AI features (Business Assistant widget, dunning drafts, P&L
     # narrative, receipt auto-fill) - all gated behind ANTHROPIC_API_KEY.
@@ -174,6 +178,15 @@ def create_app():
         from app.services import ai_service
 
         return {"ai_enabled": ai_service.ai_configured()}
+
+    # Every template can check `payments_enabled` to decide whether to
+    # show a "Pay Now" button at all (portal/payments.html,
+    # buyer_invoices/detail.html's "Copy Payment Link", pay/buyer_invoice.html).
+    @app.context_processor
+    def inject_payments_flag():
+        from app.services import payment_gateway_service
+
+        return {"payments_enabled": payment_gateway_service.gateway_configured()}
 
     # --- Public "Guest / Read-Only Demo" mode -------------------------
     # Lets HR/recruiters/anyone try the app with no login and no
@@ -201,12 +214,23 @@ def create_app():
     def block_guest_writes():
         """
         A guest session may only ever GET/HEAD/OPTIONS. Every mutating
-        route in this app is POST (there are no GET routes with side
-        effects), so this one blanket check is sufficient to make the
-        entire app read-only for guests without needing a list of
-        allowed/blocked endpoints that could drift out of date.
+        admin route in this app is POST (there are no GET routes with
+        side effects), so this one blanket check is sufficient to make
+        the entire admin app read-only for guests without needing a list
+        of allowed/blocked endpoints that could drift out of date.
+
+        Exception: the public "pay" blueprint (a buyer's payment link,
+        app/routes/pay.py). It's a separate, unauthenticated flow that
+        must keep working even if the SAME browser previously visited
+        /guest-login and never logged out of the admin demo - a buyer
+        paying a real invoice should never be silently blocked by
+        someone else's leftover admin session in a shared browser.
         """
-        if session.get("is_guest") and request.method not in ("GET", "HEAD", "OPTIONS"):
+        if (
+            session.get("is_guest")
+            and request.blueprint != "pay"
+            and request.method not in ("GET", "HEAD", "OPTIONS")
+        ):
             flash("This is a read-only demo – changes aren't saved here.", "warning")
             return redirect(request.referrer or url_for("dashboard.index"))
 
@@ -254,10 +278,38 @@ def create_app():
             {
                 "username": username,
                 "password_hash": generate_password_hash(password),
+                "role": "Owner",
                 "created_at": datetime.now(timezone.utc),
             }
         )
-        click.echo(f"Admin user '{username}' created successfully.")
+        click.echo(f"Owner account '{username}' created successfully.")
+
+    # --- CLI command: flask create-staff ---
+    # Creates a limited "Staff" login: can use Customers and Milk Entries
+    # (including the machine import), but the nav hides - and every route
+    # under @owner_required blocks - Buyer, Accounting, Rate Config,
+    # Payments, and Notifications, plus the AI Business Assistant (all of
+    # which touch money or business-sensitive figures). Useful for a
+    # helper who records daily milk collection but shouldn't see the
+    # dairy's finances.
+    @app.cli.command("create-staff")
+    @click.argument("username")
+    @click.password_option()
+    def create_staff(username, password):
+        """Create a limited Staff user. Usage: flask create-staff <username>"""
+        if db.users.find_one({"username": username}):
+            click.echo(f"Error: user '{username}' already exists.")
+            return
+
+        db.users.insert_one(
+            {
+                "username": username,
+                "password_hash": generate_password_hash(password),
+                "role": "Staff",
+                "created_at": datetime.now(timezone.utc),
+            }
+        )
+        click.echo(f"Staff account '{username}' created successfully.")
 
     # --- CLI command: flask reset-password ---
     # Use this when you forget an existing admin's password, instead of

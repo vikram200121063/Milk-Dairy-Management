@@ -10,13 +10,14 @@ from flask import (
     flash,
     current_app,
     send_file,
+    jsonify,
 )
 from werkzeug.security import generate_password_hash, check_password_hash
 
 from app.utils.decorators import customer_login_required
 from app.routes.customers import MOBILE_RE
 from app.routes.payments import _current_cycle_defaults
-from app.services import payment_service, invoice_service
+from app.services import payment_service, invoice_service, payment_gateway_service
 
 customer_portal_bp = Blueprint("customer_portal", __name__, url_prefix="/portal")
 
@@ -268,7 +269,94 @@ def payments():
         "remaining": sum(p["remaining_amount"] for p in records),
     }
 
-    return render_template("portal/payments.html", payments=records, totals=totals)
+    return render_template(
+        "portal/payments.html",
+        payments=records,
+        totals=totals,
+        payments_enabled=payment_gateway_service.gateway_configured(),
+        razorpay_key_id=current_app.config.get("RAZORPAY_KEY_ID"),
+    )
+
+
+# ---------------------------------------------------------------------------
+# Online payments (Razorpay) - see app/services/payment_gateway_service.py
+# for the full flow. Only ever pays off ONE cycle's remaining_amount at a
+# time (the same granularity as payment_service.record_payment), matching
+# the "Pay Now" button placed on each row of portal/payments.html.
+# ---------------------------------------------------------------------------
+
+
+@customer_portal_bp.route("/payments/<payment_id>/pay/create-order", methods=["POST"])
+@customer_login_required
+def create_payment_order(payment_id):
+    payment = current_app.db.payments.find_one({"payment_id": payment_id})
+    if not payment or payment["customer_id"] != session["customer_id"]:
+        return jsonify(error="Payment record not found."), 404
+    if payment["remaining_amount"] <= 0:
+        return jsonify(error="Nothing due on this cycle."), 400
+
+    order, error = payment_gateway_service.create_order(
+        payment["remaining_amount"],
+        receipt=f"cust-{payment_id}",
+        notes={"payment_id": payment_id, "customer_id": session["customer_id"]},
+    )
+    if error:
+        return jsonify(error=error), 400
+
+    return jsonify(
+        order_id=order["id"],
+        amount=order["amount"],
+        key_id=current_app.config["RAZORPAY_KEY_ID"],
+        customer_name=session.get("customer_name"),
+        dairy_name=current_app.config.get("DAIRY_NAME"),
+    )
+
+
+@customer_portal_bp.route("/payments/<payment_id>/pay/verify", methods=["POST"])
+@customer_login_required
+def verify_payment_order(payment_id):
+    payment = current_app.db.payments.find_one({"payment_id": payment_id})
+    if not payment or payment["customer_id"] != session["customer_id"]:
+        return jsonify(error="Payment record not found."), 404
+
+    data = request.get_json(silent=True) or {}
+    verified = payment_gateway_service.verify_payment_signature(
+        data.get("razorpay_order_id"),
+        data.get("razorpay_payment_id"),
+        data.get("razorpay_signature"),
+    )
+    if not verified:
+        return jsonify(error="Payment could not be verified."), 400
+
+    razorpay_payment_id = data.get("razorpay_payment_id")
+
+    # Idempotency: a webhook delivery for this same payment (see
+    # /pay/webhook) can arrive before or after this browser call. Whichever
+    # of the two gets here first "claims" it and actually credits the
+    # cycle; the other is a no-op success, so the customer is never
+    # charged once but credited twice.
+    if not payment_gateway_service.claim_payment_event(current_app.db, razorpay_payment_id):
+        return jsonify(success=True)
+
+    # Re-read the remaining amount fresh (never trust the browser for
+    # this) - it may already be 0 if the customer double-clicked or
+    # staff recorded a manual payment in between.
+    payment = current_app.db.payments.find_one({"payment_id": payment_id})
+    amount = payment["remaining_amount"]
+    if amount <= 0:
+        return jsonify(success=True)
+
+    ok, result = payment_service.record_payment(
+        current_app.db,
+        payment_id,
+        amount,
+        "Online (Razorpay)",
+        data.get("razorpay_payment_id"),
+        datetime.now(timezone.utc),
+    )
+    if not ok:
+        return jsonify(error=result), 400
+    return jsonify(success=True)
 
 
 @customer_portal_bp.route("/payments/<payment_id>/invoice")

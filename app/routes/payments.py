@@ -11,7 +11,7 @@ from flask import (
     send_file,
 )
 
-from app.utils.decorators import login_required
+from app.utils.decorators import owner_required
 from app.services import payment_service, invoice_service, notification_service
 
 payments_bp = Blueprint("payments", __name__, url_prefix="/payments")
@@ -31,7 +31,7 @@ def _current_cycle_defaults():
 
 
 @payments_bp.route("/")
-@login_required
+@owner_required
 def list_payments():
     year = request.args.get("year", type=int)
     month = request.args.get("month", type=int)
@@ -64,7 +64,7 @@ def list_payments():
 
 
 @payments_bp.route("/generate", methods=["POST"])
-@login_required
+@owner_required
 def generate():
     year = request.form.get("year", type=int)
     month = request.form.get("month", type=int)
@@ -80,7 +80,7 @@ def generate():
 
 
 @payments_bp.route("/<payment_id>")
-@login_required
+@owner_required
 def detail(payment_id):
     payment = current_app.db.payments.find_one({"payment_id": payment_id})
     if not payment:
@@ -106,7 +106,7 @@ def detail(payment_id):
 
 
 @payments_bp.route("/<payment_id>/deductions", methods=["POST"])
-@login_required
+@owner_required
 def set_deductions(payment_id):
     try:
         deductions = float(request.form.get("deductions", "0"))
@@ -127,7 +127,7 @@ def set_deductions(payment_id):
 
 
 @payments_bp.route("/<payment_id>/pay", methods=["POST"])
-@login_required
+@owner_required
 def pay(payment_id):
     try:
         amount = float(request.form.get("amount", "0"))
@@ -199,7 +199,7 @@ def _dairy_info():
 
 
 @payments_bp.route("/<payment_id>/invoice")
-@login_required
+@owner_required
 def invoice(payment_id):
     context = _load_invoice_context(payment_id)
     if not context:
@@ -218,7 +218,7 @@ def invoice(payment_id):
 
 
 @payments_bp.route("/<payment_id>/invoice/pdf")
-@login_required
+@owner_required
 def invoice_pdf(payment_id):
     context = _load_invoice_context(payment_id)
     if not context:
@@ -249,7 +249,7 @@ def _summarize_notify_result(result):
 
 
 @payments_bp.route("/<payment_id>/notify", methods=["POST"])
-@login_required
+@owner_required
 def notify(payment_id):
     """Sends the invoice email for one payment record, on demand."""
     context = _load_invoice_context(payment_id)  # also assigns the invoice number
@@ -269,7 +269,7 @@ def notify(payment_id):
 
 
 @payments_bp.route("/notify-cycle", methods=["POST"])
-@login_required
+@owner_required
 def notify_cycle():
     """
     Sends the invoice email to EVERY customer with a payment record in

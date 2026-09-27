@@ -25,7 +25,12 @@
                 {% endif %}
 
                 <h5 class="mb-1">{{ user.username }}</h5>
-                <p class="text-muted small mb-4">Signed in to OM Dairy</p>
+                <p class="text-muted small mb-1">Signed in to OM Dairy</p>
+                <p class="mb-4">
+                    <span class="badge {{ 'bg-primary' if session.get('role', 'Owner') == 'Owner' else 'bg-secondary' }}">
+                        {{ session.get('role', 'Owner') }}
+                    </span>
+                </p>
 
                 <form method="POST" enctype="multipart/form-data" class="text-start mb-3">
                     <input type="hidden" name="action" value="upload">

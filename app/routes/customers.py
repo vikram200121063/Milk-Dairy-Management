@@ -13,6 +13,7 @@ from flask import (
 
 from app.utils.decorators import login_required
 from app.utils.id_generator import get_next_sequence
+from app.utils.csv_export import csv_response
 from app.services import ledger_service
 
 customers_bp = Blueprint("customers", __name__, url_prefix="/customers")
@@ -36,6 +37,7 @@ def _read_and_validate_form(form):
         "email": form.get("email", "").strip(),
         "address": form.get("address", "").strip(),
         "village": form.get("village", "").strip(),
+        "machine_code": form.get("machine_code", "").strip(),
     }
 
     errors = []
@@ -85,6 +87,48 @@ def list_customers():
     )
 
 
+@customers_bp.route("/export.csv")
+@login_required
+def export_csv():
+    """Downloads the currently filtered customer list (same q/status as the
+    list page) as a CSV file - respects whatever search/filter is active."""
+    query_text = request.args.get("q", "").strip()
+    status_filter = request.args.get("status", "")
+
+    mongo_filter = {}
+    if query_text:
+        pattern = re.escape(query_text)
+        mongo_filter["$or"] = [
+            {"name": {"$regex": pattern, "$options": "i"}},
+            {"mobile_number": {"$regex": pattern}},
+            {"customer_id": {"$regex": pattern, "$options": "i"}},
+        ]
+    if status_filter in ("Active", "Inactive"):
+        mongo_filter["status"] = status_filter
+
+    customers = current_app.db.customers.find(mongo_filter).sort("registration_date", -1)
+
+    header = [
+        "Customer ID", "Name", "Mobile Number", "Email", "Village",
+        "Address", "Machine Code", "Status", "Registered On",
+    ]
+    rows = (
+        [
+            c["customer_id"],
+            c["name"],
+            c["mobile_number"],
+            c.get("email", ""),
+            c.get("village", ""),
+            c.get("address", ""),
+            c.get("machine_code", ""),
+            c["status"],
+            c["registration_date"].strftime("%Y-%m-%d") if c.get("registration_date") else "",
+        ]
+        for c in customers
+    )
+    return csv_response("customers.csv", header, rows)
+
+
 @customers_bp.route("/add", methods=["GET", "POST"])
 @login_required
 def add_customer():
@@ -95,6 +139,15 @@ def add_customer():
             {"mobile_number": data["mobile_number"]}
         ):
             errors.append("A customer with this mobile number already exists.")
+
+        # Machine code is optional, but if given it must be unique - it's
+        # how the milk-machine import (see milk_import_service.py) maps a
+        # sample row back to the right customer, so two customers sharing
+        # one code would silently misattribute imported entries.
+        if data["machine_code"] and current_app.db.customers.find_one(
+            {"machine_code": data["machine_code"]}
+        ):
+            errors.append("Another customer already uses this machine code.")
 
         if errors:
             for error in errors:
@@ -112,6 +165,7 @@ def add_customer():
                 "email": data["email"],
                 "address": data["address"],
                 "village": data["village"],
+                "machine_code": data["machine_code"],
                 "registration_date": datetime.now(timezone.utc),
                 "status": "Active",
             }
@@ -143,6 +197,14 @@ def edit_customer(customer_id):
         if duplicate:
             errors.append("Another customer already uses this mobile number.")
 
+        if data["machine_code"] and current_app.db.customers.find_one(
+            {
+                "machine_code": data["machine_code"],
+                "customer_id": {"$ne": customer_id},
+            }
+        ):
+            errors.append("Another customer already uses this machine code.")
+
         if errors:
             for error in errors:
                 flash(error, "danger")
@@ -158,6 +220,7 @@ def edit_customer(customer_id):
                     "email": data["email"],
                     "address": data["address"],
                     "village": data["village"],
+                    "machine_code": data["machine_code"],
                 }
             },
         )

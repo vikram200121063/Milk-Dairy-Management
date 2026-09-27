@@ -39,6 +39,9 @@
             <div class="col-md-6 mb-2">
                 <strong>Registered On:</strong> {{ customer.registration_date.strftime('%d %b %Y') }}
             </div>
+            <div class="col-md-6 mb-2">
+                <strong>Milk Machine Code:</strong> {{ customer.machine_code or '—' }}
+            </div>
             <div class="col-12 mb-2">
                 <strong>Address:</strong> {{ customer.address or '—' }}
             </div>

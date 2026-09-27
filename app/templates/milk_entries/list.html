@@ -6,7 +6,11 @@
 {% include "partials/customer_nav.html" %}
 <div class="d-flex justify-content-between align-items-center mb-3">
     <h2 class="mb-0">Milk Collection Entries</h2>
-    <a href="{{ url_for('milk_entries.add_entry') }}" class="btn btn-primary">+ Add Entry</a>
+    <div class="d-flex gap-2">
+        <a href="{{ url_for('milk_entries.export_csv', date_from=date_from, date_to=date_to, shift=shift, milk_type=milk_type, customer_id=customer_id) }}" class="btn btn-outline-secondary">⬇ Download CSV</a>
+        <a href="{{ url_for('milk_entries.import_page') }}" class="btn btn-outline-primary">⬆ Import from Machine</a>
+        <a href="{{ url_for('milk_entries.add_entry') }}" class="btn btn-primary">+ Add Entry</a>
+    </div>
 </div>
 
 <div class="card shadow-sm mb-3 border-0" style="background: var(--color-cream-alt);">

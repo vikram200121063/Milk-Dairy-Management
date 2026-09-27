@@ -11,8 +11,10 @@ from flask import (
     send_file,
 )
 
-from app.utils.decorators import login_required
-from app.services import buyer_invoice_service, invoice_service, dunning_service, finance_settings_service
+from app.utils.decorators import owner_required
+from app.utils.csv_export import csv_response
+from app.services import buyer_invoice_service, invoice_service, dunning_service, finance_settings_service, payment_gateway_service
+from app.routes.pay import make_invoice_pay_token
 
 buyer_invoices_bp = Blueprint("buyer_invoices", __name__, url_prefix="/buyer-invoices")
 
@@ -29,7 +31,7 @@ def _dairy_info():
 
 
 @buyer_invoices_bp.route("/")
-@login_required
+@owner_required
 def list_invoices():
     year = request.args.get("year", type=int)
     month = request.args.get("month", type=int)
@@ -76,8 +78,52 @@ def list_invoices():
     )
 
 
+@buyer_invoices_bp.route("/export.csv")
+@owner_required
+def export_csv():
+    """Downloads the currently filtered billing period's invoices as CSV."""
+    year = request.args.get("year", type=int)
+    month = request.args.get("month", type=int)
+    period_number = request.args.get("period", type=int)
+    status_filter = request.args.get("status", "")
+    buyer_id = request.args.get("buyer_id", "")
+
+    if not (year and month and period_number in (1, 2)):
+        year, month, period_number = buyer_invoice_service.current_period_defaults()
+
+    period = buyer_invoice_service.make_billing_period(year, month, period_number)
+
+    mongo_filter = {"billing_period": period}
+    if status_filter in STATUSES:
+        mongo_filter["status"] = status_filter
+    if buyer_id:
+        mongo_filter["buyer_id"] = buyer_id
+
+    invoices = current_app.db.buyer_invoices.find(mongo_filter).sort("buyer_name", 1)
+
+    header = [
+        "Invoice ID", "Buyer ID", "Buyer Name", "Billing Period", "Total Amount",
+        "Amount Paid", "Remaining Amount", "Status", "Due Date",
+    ]
+    rows = (
+        [
+            i["invoice_id"],
+            i["buyer_id"],
+            i["buyer_name"],
+            i.get("billing_period", ""),
+            i["total_amount"],
+            i["amount_paid"],
+            i["remaining_amount"],
+            i["status"],
+            i["due_date"].strftime("%Y-%m-%d") if i.get("due_date") else "",
+        ]
+        for i in invoices
+    )
+    return csv_response(f"buyer_invoices_{year}_{month:02d}_p{period_number}.csv", header, rows)
+
+
 @buyer_invoices_bp.route("/generate", methods=["POST"])
-@login_required
+@owner_required
 def generate():
     year = request.form.get("year", type=int)
     month = request.form.get("month", type=int)
@@ -97,7 +143,7 @@ def generate():
 
 
 @buyer_invoices_bp.route("/<invoice_id>")
-@login_required
+@owner_required
 def detail(invoice_id):
     invoice = current_app.db.buyer_invoices.find_one({"invoice_id": invoice_id})
     if not invoice:
@@ -110,6 +156,10 @@ def detail(invoice_id):
     interest_log = dunning_service.interest_history(current_app.db, invoice_id)
     settings = finance_settings_service.get_settings(current_app.db)
 
+    pay_link = url_for(
+        "pay.invoice_pay_page", token=make_invoice_pay_token(invoice_id), _external=True
+    )
+
     return render_template(
         "buyer_invoices/detail.html",
         invoice=invoice,
@@ -120,11 +170,13 @@ def detail(invoice_id):
         payment_methods=PAYMENT_METHODS,
         today=date_cls.today().isoformat(),
         settings=settings,
+        pay_link=pay_link,
+        payments_enabled=payment_gateway_service.gateway_configured(),
     )
 
 
 @buyer_invoices_bp.route("/<invoice_id>/pay", methods=["POST"])
-@login_required
+@owner_required
 def pay(invoice_id):
     try:
         amount = float(request.form.get("amount", "0"))
@@ -161,7 +213,7 @@ def pay(invoice_id):
 
 
 @buyer_invoices_bp.route("/<invoice_id>/invoice")
-@login_required
+@owner_required
 def invoice_view(invoice_id):
     invoice = current_app.db.buyer_invoices.find_one({"invoice_id": invoice_id})
     if not invoice:
@@ -183,7 +235,7 @@ def invoice_view(invoice_id):
 
 
 @buyer_invoices_bp.route("/<invoice_id>/invoice/pdf")
-@login_required
+@owner_required
 def invoice_pdf(invoice_id):
     invoice = current_app.db.buyer_invoices.find_one({"invoice_id": invoice_id})
     if not invoice:
@@ -201,7 +253,7 @@ def invoice_pdf(invoice_id):
 
 
 @buyer_invoices_bp.route("/<invoice_id>/notify", methods=["POST"])
-@login_required
+@owner_required
 def notify(invoice_id):
     invoice = current_app.db.buyer_invoices.find_one({"invoice_id": invoice_id})
     if not invoice:
@@ -220,7 +272,7 @@ def notify(invoice_id):
 
 
 @buyer_invoices_bp.route("/<invoice_id>/send-reminder", methods=["POST"])
-@login_required
+@owner_required
 def send_reminder(invoice_id):
     invoice = current_app.db.buyer_invoices.find_one({"invoice_id": invoice_id})
     if not invoice:
@@ -238,7 +290,7 @@ def send_reminder(invoice_id):
 
 
 @buyer_invoices_bp.route("/run-dunning", methods=["POST"])
-@login_required
+@owner_required
 def run_dunning():
     stats = dunning_service.run_dunning_cycle(current_app.db, _dairy_info())
     flash(
@@ -252,7 +304,7 @@ def run_dunning():
 
 
 @buyer_invoices_bp.route("/interest/<charge_id>/waive", methods=["POST"])
-@login_required
+@owner_required
 def waive_interest(charge_id):
     charge = current_app.db.interest_charges.find_one({"charge_id": charge_id})
     if not charge:
@@ -278,7 +330,7 @@ def waive_interest(charge_id):
 
 
 @buyer_invoices_bp.route("/dunning-log")
-@login_required
+@owner_required
 def dunning_log():
     """A flat, all-invoices view of every reminder/invoice email ever sent."""
     records = list(current_app.db.dunning_records.find().sort("sent_at", -1).limit(300))

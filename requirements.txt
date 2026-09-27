@@ -18,3 +18,14 @@ gunicorn==22.0.0
 anthropic>=0.40.0,<1.0.0
 openai>=1.40.0,<2.0.0
 google-generativeai>=0.8.0,<1.0.0
+
+# Powers app/services/payment_gateway_service.py (online "Pay Now" via
+# Razorpay's Checkout) - optional, gated behind RAZORPAY_KEY_ID/
+# RAZORPAY_KEY_SECRET (see .env.example). Free to install and use in
+# Razorpay's test/sandbox mode.
+razorpay>=1.4.2,<2.0.0
+
+# Powers app/services/milk_import_service.py (bulk import of milk entries
+# from a milk analyzer machine's exported .xlsx file). Pure-Python, free,
+# no account/API key needed. CSV imports use the standard library only.
+openpyxl>=3.1.0,<4.0.0
