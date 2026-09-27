@@ -29,3 +29,4 @@ razorpay>=1.4.2,<2.0.0
 # from a milk analyzer machine's exported .xlsx file). Pure-Python, free,
 # no account/API key needed. CSV imports use the standard library only.
 openpyxl>=3.1.0,<4.0.0
+setuptools>=70.0.0
